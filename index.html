@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIGIA PET</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .app-container {
+            max-width: 400px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin: 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eef2f7;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #1a2a3a;
+            font-weight: 700;
+        }
+        
+        .pet-status-badge {
+            background: #4caf50;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .camera-view {
+            background: #1a2a3a;
+            border-radius: 16px;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .camera-view .placeholder {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .camera-view .subtitle {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .behavior-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .behavior-card {
+            background: #f8fafc;
+            padding: 15px 10px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .behavior-card.active {
+            border-color: #4caf50;
+            background: #e8f5e9;
+        }
+        
+        .behavior-card .icon {
+            font-size: 30px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .behavior-card .label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a2a3a;
+        }
+        
+        .behavior-card .time {
+            font-size: 10px;
+            color: #8899aa;
+            margin-top: 3px;
+        }
+        
+        .stats-section {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-section h3 {
+            font-size: 14px;
+            color: #1a2a3a;
+            margin-bottom: 12px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-item .value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a2a3a;
+        }
+        
+        .stat-item .stat-label {
+            font-size: 10px;
+            color: #8899aa;
+            margin-top: 2px;
+        }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background: #43a047;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn-secondary {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: #1a2a3a;
+            border: 2px solid #e0e4ea;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #4caf50;
+            background: #f8fafc;
+        }
+        
+        .notification-badge {
+            background: #ff5252;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+        
+        .header .notif-icon {
+            position: relative;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🐾 VIGIA PET</h1>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span class="pet-status-badge">● Online</span>
+                <span class="notif-icon">
+                    🔔
+                    <span class="notification-badge">3</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Camera View -->
+        <div class="camera-view">
+            <div class="placeholder">📷</div>
+            <div class="subtitle">Monitorando seu pet...</div>
+            <div class="status-indicator">🟢 Gravando</div>
+        </div>
+
+        <!-- Behavior Detection -->
+        <div class="behavior-cards">
+            <div class="behavior-card active">
+                <span class="icon">😴</span>
+                <span class="label">Dormindo</span>
+                <span class="time">2h 15m</span>
+            </div>
+            <div class="behavior-card">
+                <span class="icon">🍖</span>
+                <span class="label">Comendo</span>
+                <span class="time">15m</span>
+            </div>
+            <div class="behavior-card">
+                <span class="icon">🐕</span>
+                <span class="label">Agitado</span>
+                <span class="time">30m</span>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-section">
+            <h3>📊 Resumo do Dia</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="value">65%</div>
+                    <div class="stat-label">Descanso</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value">20%</div>
+                    <div class="stat-label">Atividade</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value">15%</div>
+                    <div class="stat-label">Alimentação</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <button class="btn-primary" onclick="startMonitoring()">
+            ▶ Iniciar Monitoramento
+        </button>
+        <button class="btn-secondary" onclick="viewHistory()">
+            📅 Ver Histórico
+        </button>
+    </div>
+
+    <script>
+        function startMonitoring() {
+            alert('🎥 Monitoramento iniciado! O app está analisando o comportamento do pet.');
+            // Aqui será integrado com a câmera e IA
+        }
+        
+        function viewHistory() {
+            alert('📊 Carregando histórico de comportamento...');
+            // Aqui será integrado com o Firebase/Firestore
+        }
+    </script>
+</body>
+</html>
