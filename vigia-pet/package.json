@@ -1,0 +1,13 @@
+{
+  "name": "vigia-pet",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nitron dev",
+    "build": "nitron build"
+  },
+  "dependencies": {
+    "nitron": "latest"
+  }
+}
