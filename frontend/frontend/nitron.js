@@ -12,7 +12,7 @@
   ],
   "features": {
     "camera": true,
-    "location": false
+    "location": falses
   },
   "icons": {
     "adaptive": {
