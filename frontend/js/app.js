@@ -3,6 +3,7 @@
 // ============================================
 
 // Elementos
+import { db, auth, collection, addDoc, serverTimestamp } from './firebase-config.js';
 const vigiarBtn = document.getElementById('vigiarBtn');
 const statusText = document.getElementById('statusText');
 const video = document.getElementById('video');
