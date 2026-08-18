@@ -1,26 +1,47 @@
-// Substitua com suas credenciais do Firebase
+// 🔥 CONFIGURAÇÃO DO FIREBASE
 const firebaseConfig = {
-    apiKey: "SUA_API_KEY",
-    authDomain: "SEU_PROJETO.firebaseapp.com",
-    projectId: "SEU_PROJETO_ID",
-    storageBucket: "SEU_PROJETO.appspot.com",
-    messagingSenderId: "SEU_SENDER_ID",
-    appId: "SEU_APP_ID"
+  apiKey: "AIzaSyAuidFnEQ3Zke_wKi5dbD44JErLshi40Sc",
+  authDomain: "vigia-pet.firebaseapp.com",
+  projectId: "vigia-pet",
+  storageBucket: "vigia-pet.firebasestorage.app",
+  messagingSenderId: "763932392440",
+  appId: "1:763932392440:web:39866711d132f48431740d",
+  measurementId: "G-12V07LE6D7"
 };
 
-export function initFirebase() {
-    console.log('✅ Firebase conectado!');
-    return true;
-}
+// Importar Firebase (CDN)
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    serverTimestamp,
+    getDocs,
+    query,
+    orderBy,
+    where,
+    doc,
+    getDoc,
+    updateDoc,
+    deleteDoc,
+    onSnapshot
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-export async function saveBehavior(behavior) {
-    console.log(`📊 Comportamento salvo: ${behavior}`);
-    return { id: Date.now() };
-}
+import { 
+    getAuth, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+    signOut
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-export async function getHistory() {
-    return [
-        { behavior: 'dormindo', timestamp: new Date() },
-        { behavior: 'comendo', timestamp: new Date() }
-    ];
-}
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+console.log('✅ Firebase conectado com sucesso!');
+
+// Exportar
+export { db, auth, collection, addDoc, serverTimestamp, getDocs, query, orderBy, where, doc, getDoc, updateDoc, deleteDoc, onSnapshot };
+export { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut };
