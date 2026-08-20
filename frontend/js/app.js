@@ -13,6 +13,7 @@ const behaviorText = document.getElementById('behaviorText');
 
 let isVigiando = false;
 let stream = null;
+let petId = null; // Será definido quando o usuário selecionar um pet
 
 // ============================================
 // FUNÇÃO PRINCIPAL: VIGIAR
@@ -110,7 +111,7 @@ function iniciarDetecao() {
         behaviorIcon.textContent = random.icon;
         behaviorText.textContent = random.text;
         
-        // Atualizar estatísticas (simulação)
+        // Atualizar estatísticas e SALVAR NO FIREBASE
         atualizarEstatisticas(random.type);
         
         console.log(`🐾 Comportamento: ${random.text}`);
@@ -126,6 +127,9 @@ let stats = { dormindo: 0, comendo: 0, agitado: 0 };
 function atualizarEstatisticas(tipo) {
     stats[tipo] = (stats[tipo] || 0) + 1;
     
+    // 🔥 SALVAR NO FIREBASE
+    salvarComportamento(tipo);
+    
     const total = stats.dormindo + stats.comendo + stats.agitado;
     if (total === 0) return;
     
@@ -137,6 +141,42 @@ function atualizarEstatisticas(tipo) {
     document.getElementById('sleepTime').textContent = `${sleepMin}h ${sleepMin % 60}m`;
     document.getElementById('eatTime').textContent = `${eatMin}h ${eatMin % 60}m`;
     document.getElementById('activeTime').textContent = `${activeMin}h ${activeMin % 60}m`;
+}
+
+// ============================================
+// 🔥 SALVAR NO FIREBASE
+// ============================================
+
+async function salvarComportamento(tipo) {
+    try {
+        // Se não tiver petId, usar um ID padrão (ou pode pedir para o usuário selecionar)
+        const petIdAtual = petId || 'pet-padrao';
+        
+        const docRef = await addDoc(collection(db, 'behaviors'), {
+            petId: petIdAtual,
+            behavior: tipo,
+            timestamp: serverTimestamp(),
+            device: navigator.userAgent || 'desconhecido',
+            sessionId: Date.now().toString()
+        });
+        
+        console.log(`✅ Comportamento salvo: ${tipo} (ID: ${docRef.id})`);
+        return docRef.id;
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar no Firebase:', error);
+        // O app continua funcionando mesmo sem salvar
+        return null;
+    }
+}
+
+// ============================================
+// FUNÇÃO PARA SELECIONAR PET (OPCIONAL)
+// ============================================
+
+function selecionarPet(id) {
+    petId = id;
+    console.log(`🐾 Pet selecionado: ${petId}`);
 }
 
 // ============================================
@@ -152,6 +192,7 @@ vigiarBtn.addEventListener('click', toggleVigiar);
 document.getElementById('exportBtn').addEventListener('click', () => {
     const data = {
         stats: stats,
+        petId: petId,
         timestamp: new Date().toISOString()
     };
     
