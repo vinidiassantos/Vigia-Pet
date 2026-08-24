@@ -12,6 +12,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 #app {
@@ -20,183 +21,262 @@ body {
     height: 100vh;
     max-height: 800px;
     background: linear-gradient(145deg, #141b2b 0%, #1a2333 100%);
-    border-radius: 32px;
     padding: 20px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    position: relative;
 }
 
+/* ===== HEADER ===== */
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .logo {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: #4fc3f7;
 }
 
 .status {
-    font-size: 12px;
+    font-size: 11px;
     color: #4caf50;
     background: rgba(76, 175, 80, 0.15);
-    padding: 6px 14px;
+    padding: 4px 12px;
     border-radius: 20px;
     border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
-.camera-container {
+/* ===== MAIN ===== */
+main {
     flex: 1;
-    background: #0a0e17;
-    border-radius: 20px;
-    overflow: hidden;
-    position: relative;
-    margin-bottom: 20px;
-    border: 2px solid rgba(79, 195, 247, 0.2);
     display: flex;
-    align-items: center;
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 0;
 }
 
-.camera-container video {
+/* ===== BOTÃO VIGIAR (CENTRAL) ===== */
+.vigiar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.btn-vigiar {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4fc3f7 0%, #2196f3 100%);
+    border: none;
+    box-shadow: 0 0 60px rgba(33, 150, 243, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.btn-vigiar:active {
+    transform: scale(0.95);
+    box-shadow: 0 0 40px rgba(33, 150, 243, 0.5);
+}
+
+.btn-vigiar .icon {
+    font-size: 48px;
+    line-height: 1;
+}
+
+.btn-vigiar .text {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 2px;
+    margin-top: 4px;
+}
+
+.btn-vigiar.vigilando {
+    background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
+    box-shadow: 0 0 60px rgba(255, 82, 82, 0.3);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.status-text {
+    font-size: 14px;
+    color: #78909c;
+    text-align: center;
+    margin-top: 4px;
+}
+
+.status-text.ativo {
+    color: #4fc3f7;
+}
+
+/* ===== CÂMERA ===== */
+.camera-area {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #0a0e17;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid rgba(79, 195, 247, 0.2);
+    display: none;
+}
+
+.camera-area video {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.overlay {
+.camera-overlay {
     position: absolute;
-    bottom: 20px;
+    bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(10px);
-    padding: 12px 24px;
+    backdrop-filter: blur(8px);
+    padding: 8px 18px;
     border-radius: 30px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-.behavior-icon {
-    font-size: 28px;
-}
-
-.behavior-text {
-    font-size: 16px;
-    font-weight: 500;
-}
-
-.controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 10px;
-    margin-bottom: 20px;
-}
-
-.controls .btn-primary {
-    grid-column: 1 / -1;
-}
-
-.btn-primary {
-    padding: 14px;
-    background: linear-gradient(135deg, #4fc3f7 0%, #2196f3 100%);
-    color: white;
-    border: none;
-    border-radius: 14px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(33, 150, 243, 0.4);
-}
-
-.btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.btn-secondary {
-    padding: 12px;
-    background: rgba(255,255,255,0.05);
-    color: #b0bec5;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 14px;
     font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
-.btn-secondary:hover {
-    background: rgba(255,255,255,0.1);
-    color: #ffffff;
-}
-
-.btn-secondary:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.stats {
+/* ===== ESTATÍSTICAS MINI ===== */
+.stats-mini {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
 }
 
-.stat-card {
+.stat-item {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px;
-    padding: 14px;
+    border-radius: 12px;
+    padding: 10px;
     text-align: center;
+}
+
+.stat-emoji {
+    font-size: 20px;
+    display: block;
 }
 
 .stat-label {
     display: block;
-    font-size: 11px;
+    font-size: 10px;
     color: #78909c;
-    margin-bottom: 4px;
+    margin: 2px 0;
 }
 
 .stat-value {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     color: #e0e0e0;
 }
 
-.history {
-    margin-top: 20px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 14px;
-    padding: 16px;
-    max-height: 200px;
+/* ===== AÇÕES ===== */
+.actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.btn-secondary {
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: #b0bec5;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.btn-secondary:active {
+    background: rgba(255,255,255,0.1);
+    transform: scale(0.97);
+}
+
+/* ===== HISTÓRICO ===== */
+.history-container {
+    width: 100%;
+    max-height: 150px;
     overflow-y: auto;
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 10px;
+    display: none;
 }
 
-.history h3 {
-    font-size: 14px;
-    color: #78909c;
-    margin-bottom: 10px;
-}
-
-.history ul {
+.history-container ul {
     list-style: none;
 }
 
-.history li {
-    padding: 8px 0;
+.history-container li {
+    padding: 6px 0;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     font-size: 13px;
     color: #b0bec5;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 480px) {
+    .btn-vigiar {
+        width: 160px;
+        height: 160px;
+    }
+    .btn-vigiar .icon {
+        font-size: 40px;
+    }
+    .btn-vigiar .text {
+        font-size: 16px;
+    }
+}
+
+@media (max-height: 700px) {
+    .btn-vigiar {
+        width: 140px;
+        height: 140px;
+    }
+    .btn-vigiar .icon {
+        font-size: 32px;
+    }
+    .btn-vigiar .text {
+        font-size: 14px;
+    }
+    .stats-mini {
+        gap: 6px;
+    }
+    .stat-item {
+        padding: 6px;
+    }
 }

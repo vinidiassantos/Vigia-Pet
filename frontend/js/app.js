@@ -4,6 +4,7 @@
 
 // Elementos
 import { db, auth, collection, addDoc, serverTimestamp } from './firebase-config.js';
+
 const vigiarBtn = document.getElementById('vigiarBtn');
 const statusText = document.getElementById('statusText');
 const video = document.getElementById('video');
@@ -13,7 +14,7 @@ const behaviorText = document.getElementById('behaviorText');
 
 let isVigiando = false;
 let stream = null;
-let petId = null; // Será definido quando o usuário selecionar um pet
+let petId = null;
 
 // ============================================
 // FUNÇÃO PRINCIPAL: VIGIAR
@@ -38,7 +39,7 @@ async function iniciarVigiar() {
         await video.play();
         
         // Mostrar câmera
-        cameraArea.style.display = 'block';
+        cameraArea.classList.add('active');
         
         // Atualizar estado
         isVigiando = true;
@@ -64,7 +65,7 @@ function pararVigiar() {
         stream = null;
     }
     video.srcObject = null;
-    cameraArea.style.display = 'none';
+    cameraArea.classList.remove('active');
     
     // Resetar estado
     isVigiando = false;
@@ -76,7 +77,7 @@ function pararVigiar() {
     
     // Resetar comportamento
     behaviorIcon.textContent = '🔍';
-    behaviorText.textContent = 'Analisando...';
+    behaviorText.textContent = 'Aguardando...';
 }
 
 // ============================================
@@ -114,12 +115,15 @@ function iniciarDetecao() {
         // Atualizar estatísticas e SALVAR NO FIREBASE
         atualizarEstatisticas(random.type);
         
+        // Atualizar respostas da IA
+        atualizarRespostasIA(random.type);
+        
         console.log(`🐾 Comportamento: ${random.text}`);
     }, 3000);
 }
 
 // ============================================
-// ESTATÍSTICAS (SIMULAÇÃO)
+// ESTATÍSTICAS
 // ============================================
 
 let stats = { dormindo: 0, comendo: 0, agitado: 0 };
@@ -149,7 +153,6 @@ function atualizarEstatisticas(tipo) {
 
 async function salvarComportamento(tipo) {
     try {
-        // Se não tiver petId, usar um ID padrão (ou pode pedir para o usuário selecionar)
         const petIdAtual = petId || 'pet-padrao';
         
         const docRef = await addDoc(collection(db, 'behaviors'), {
@@ -165,18 +168,51 @@ async function salvarComportamento(tipo) {
         
     } catch (error) {
         console.error('❌ Erro ao salvar no Firebase:', error);
-        // O app continua funcionando mesmo sem salvar
         return null;
     }
 }
 
 // ============================================
-// FUNÇÃO PARA SELECIONAR PET (OPCIONAL)
+// 🤖 ATUALIZAR RESPOSTAS DA IA
 // ============================================
 
-function selecionarPet(id) {
-    petId = id;
-    console.log(`🐾 Pet selecionado: ${petId}`);
+function atualizarRespostasIA(tipo) {
+    const iaList = document.getElementById('iaList');
+    
+    const respostas = {
+        dormindo: [
+            '💤 Seu pet está descansando bem. Mantenha o ambiente calmo.',
+            '🕐 Pet dormindo há mais de 2 horas? Verifique se está tudo bem.',
+            '🌙 Dica: Pets dormem em média 12-14 horas por dia.'
+        ],
+        comendo: [
+            '🍖 Ótimo! Pet se alimentando. Mantenha água fresca por perto.',
+            '⏰ Horário regular de alimentação ajuda na saúde do pet.',
+            '🥩 Dica: Consulte um veterinário sobre a dieta ideal para seu pet.'
+        ],
+        agitado: [
+            '🐕 Pet agitado! Ofereça brinquedos para gastar energia.',
+            '🏃‍♂️ Exercícios são essenciais. Passeios diários ajudam!',
+            '🧠 Dica: Jogos de inteligência podem acalmar pets agitados.'
+        ]
+    };
+    
+    const dicas = respostas[tipo] || [
+        '💡 Aguardando dados para gerar dicas...',
+        '💡 Monitore o comportamento do pet',
+        '💡 As dicas aparecerão aqui'
+    ];
+    
+    // Limpar lista
+    iaList.innerHTML = '';
+    
+    // Adicionar as 3 dicas
+    dicas.forEach(dica => {
+        const li = document.createElement('li');
+        li.className = 'ia-item';
+        li.innerHTML = dica;
+        iaList.appendChild(li);
+    });
 }
 
 // ============================================
@@ -186,7 +222,7 @@ function selecionarPet(id) {
 vigiarBtn.addEventListener('click', toggleVigiar);
 
 // ============================================
-// EXPORTAR DADOS
+// EXPORTAR DADOS (ENVIAR)
 // ============================================
 
 document.getElementById('exportBtn').addEventListener('click', () => {
@@ -203,10 +239,12 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     a.download = `vigia_pet_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    
+    alert('📤 Dados enviados com sucesso!');
 });
 
 // ============================================
-// HISTÓRICO (SIMULAÇÃO)
+// HISTÓRICO
 // ============================================
 
 document.getElementById('historyBtn').addEventListener('click', () => {
@@ -215,5 +253,9 @@ document.getElementById('historyBtn').addEventListener('click', () => {
           `🍖 Comendo: ${stats.comendo} vezes\n` +
           `🐕 Agitado: ${stats.agitado} vezes`);
 });
+
+// ============================================
+// INICIALIZAÇÃO
+// ============================================
 
 console.log('🐾 VIGIA PET iniciado!');

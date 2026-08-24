@@ -9,6 +9,7 @@ import os
 # Configurações
 IMG_SIZE = 224
 BATCH_SIZE = 32
+
 EPOCHS = 20
 
 # Carregar dados

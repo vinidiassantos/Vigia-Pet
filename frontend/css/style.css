@@ -1,3 +1,6 @@
+/* ============================================
+   RESET E BASE
+   ============================================ */
 * {
     margin: 0;
     padding: 0;
@@ -19,125 +22,72 @@ body {
     width: 100%;
     max-width: 480px;
     height: 100vh;
-    max-height: 800px;
-    background: linear-gradient(145deg, #141b2b 0%, #1a2333 100%);
-    padding: 20px;
+    max-height: 900px;
+    background: linear-gradient(145deg, #0f1923 0%, #1a2a3a 100%);
+    border-radius: 32px;
+    padding: 20px 20px 20px 20px;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
     position: relative;
+    overflow: hidden;
 }
 
-/* ===== HEADER ===== */
+/* ============================================
+   HEADER / LOGO
+   ============================================ */
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 16px;
+    flex-shrink: 0;
 }
 
 .logo {
-    font-size: 18px;
-    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-icon {
+    font-size: 28px;
+}
+
+.logo-text {
+    font-size: 22px;
+    font-weight: 800;
     color: #4fc3f7;
+    letter-spacing: -0.5px;
+    text-shadow: 0 0 20px rgba(79, 195, 247, 0.2);
 }
 
 .status {
-    font-size: 11px;
+    font-size: 12px;
     color: #4caf50;
     background: rgba(76, 175, 80, 0.15);
-    padding: 4px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
     border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
-/* ===== MAIN ===== */
-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    padding: 10px 0;
-}
-
-/* ===== BOTÃO VIGIAR (CENTRAL) ===== */
-.vigiar-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-}
-
-.btn-vigiar {
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #4fc3f7 0%, #2196f3 100%);
-    border: none;
-    box-shadow: 0 0 60px rgba(33, 150, 243, 0.3);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.btn-vigiar:active {
-    transform: scale(0.95);
-    box-shadow: 0 0 40px rgba(33, 150, 243, 0.5);
-}
-
-.btn-vigiar .icon {
-    font-size: 48px;
-    line-height: 1;
-}
-
-.btn-vigiar .text {
-    font-size: 20px;
-    font-weight: 700;
-    color: white;
-    letter-spacing: 2px;
-    margin-top: 4px;
-}
-
-.btn-vigiar.vigilando {
-    background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
-    box-shadow: 0 0 60px rgba(255, 82, 82, 0.3);
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.status-text {
-    font-size: 14px;
-    color: #78909c;
-    text-align: center;
-    margin-top: 4px;
-}
-
-.status-text.ativo {
-    color: #4fc3f7;
-}
-
-/* ===== CÂMERA ===== */
+/* ============================================
+   CÂMERA
+   ============================================ */
 .camera-area {
-    width: 100%;
-    aspect-ratio: 16/9;
+    flex: 1;
+    min-height: 200px;
     background: #0a0e17;
-    border-radius: 16px;
+    border-radius: 20px;
     overflow: hidden;
     position: relative;
-    border: 2px solid rgba(79, 195, 247, 0.2);
+    margin-bottom: 16px;
+    border: 2px solid rgba(79, 195, 247, 0.15);
     display: none;
+}
+
+.camera-area.active {
+    display: block;
 }
 
 .camera-area video {
@@ -146,137 +96,258 @@ main {
     object-fit: cover;
 }
 
-.camera-overlay {
+.overlay {
     position: absolute;
-    bottom: 12px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(8px);
-    padding: 8px 18px;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px);
+    padding: 10px 22px;
     border-radius: 30px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    border: 1px solid rgba(255,255,255,0.1);
+    gap: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* ===== ESTATÍSTICAS MINI ===== */
-.stats-mini {
+.behavior-icon {
+    font-size: 26px;
+}
+
+.behavior-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* ============================================
+   BOTÃO VIGIAR (GRANDE)
+   ============================================ */
+.vigiar-btn {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 6px 30px rgba(79, 195, 247, 0.25);
+    letter-spacing: 1px;
+    position: relative;
+}
+
+.vigiar-btn:active {
+    transform: scale(0.96);
+}
+
+.vigiar-btn .icon {
+    font-size: 28px;
+}
+
+.vigiar-btn.vigilando {
+    background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
+    box-shadow: 0 6px 30px rgba(255, 82, 82, 0.3);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 6px 30px rgba(255, 82, 82, 0.3); }
+    50% { box-shadow: 0 6px 50px rgba(255, 82, 82, 0.6); }
+    100% { box-shadow: 0 6px 30px rgba(255, 82, 82, 0.3); }
+}
+
+/* ============================================
+   ESTATÍSTICAS
+   ============================================ */
+.stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    width: 100%;
-    margin-top: 4px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
 }
 
-.stat-item {
-    background: rgba(255,255,255,0.03);
+.stat-card {
+    background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    padding: 10px;
+    border-radius: 14px;
+    padding: 12px 8px;
     text-align: center;
+    transition: all 0.3s;
 }
 
-.stat-emoji {
-    font-size: 20px;
+.stat-card:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.stat-icon {
     display: block;
+    font-size: 22px;
+    margin-bottom: 2px;
 }
 
 .stat-label {
     display: block;
-    font-size: 10px;
+    font-size: 11px;
     color: #78909c;
-    margin: 2px 0;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .stat-value {
-    font-size: 14px;
-    font-weight: 600;
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
     color: #e0e0e0;
+    margin-top: 2px;
 }
 
-/* ===== AÇÕES ===== */
-.actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    width: 100%;
-    margin-top: 4px;
-}
-
-.btn-secondary {
-    padding: 10px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: #b0bec5;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-align: center;
-}
-
-.btn-secondary:active {
-    background: rgba(255,255,255,0.1);
-    transform: scale(0.97);
-}
-
-/* ===== HISTÓRICO ===== */
-.history-container {
-    width: 100%;
-    max-height: 150px;
-    overflow-y: auto;
+/* ============================================
+   IA RESPOSTAS (LISTA)
+   ============================================ */
+.ia-respostas {
     background: rgba(255,255,255,0.03);
-    border-radius: 12px;
-    padding: 10px;
-    display: none;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+    min-height: 100px;
 }
 
-.history-container ul {
+.ia-respostas h3 {
+    font-size: 13px;
+    color: #4fc3f7;
+    margin-bottom: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ia-respostas ul {
     list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.history-container li {
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+.ia-item {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
     font-size: 13px;
     color: #b0bec5;
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.4;
 }
 
-/* ===== RESPONSIVO ===== */
+.ia-item:last-child {
+    border-bottom: none;
+}
+
+.ia-item .bullet {
+    color: #4fc3f7;
+    font-weight: 700;
+}
+
+.ia-item.loading {
+    color: #78909c;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* ============================================
+   BOTÕES INFERIORES
+   ============================================ */
+.bottom-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.action-btn {
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(255,255,255,0.06);
+    color: #b0bec5;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.action-btn:active {
+    transform: scale(0.96);
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 20px rgba(79, 195, 247, 0.2);
+}
+
+.action-btn.primary:hover {
+    box-shadow: 0 4px 30px rgba(79, 195, 247, 0.35);
+}
+
+/* ============================================
+   RESPONSIVO
+   ============================================ */
 @media (max-width: 480px) {
-    .btn-vigiar {
-        width: 160px;
-        height: 160px;
+    #app {
+        border-radius: 0;
+        max-height: 100vh;
+        height: 100vh;
+        padding: 16px;
     }
-    .btn-vigiar .icon {
-        font-size: 40px;
+    
+    .logo-text {
+        font-size: 18px;
     }
-    .btn-vigiar .text {
+    
+    .vigiar-btn {
+        font-size: 18px;
+        padding: 16px;
+    }
+    
+    .stat-value {
         font-size: 16px;
     }
 }
 
-@media (max-height: 700px) {
-    .btn-vigiar {
-        width: 140px;
-        height: 140px;
-    }
-    .btn-vigiar .icon {
-        font-size: 32px;
-    }
-    .btn-vigiar .text {
-        font-size: 14px;
-    }
-    .stats-mini {
-        gap: 6px;
-    }
-    .stat-item {
-        padding: 6px;
-    }
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+    width: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4fc3f7;
+    border-radius: 4px;
 }
