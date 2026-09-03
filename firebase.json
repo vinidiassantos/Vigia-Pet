@@ -1,8 +1,24 @@
 {
-  "firestore": {
-    "database": "(default)",
-    "location": "southamerica-east1",
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+  "functions": [
+    {
+      "source": "backend/functions",
+      "codebase": "default"
+    }
+  ],
+  "emulators": {
+    "functions": {
+      "port": 2001
+    },
+    "ui": {
+      "enabled": true,
+      "port": 5000
+    },
+    "hub": {
+      "port": 4401
+    },
+    "logging": {
+      "port": 4501
+    },
+    "singleProjectMode": true
   }
 }
