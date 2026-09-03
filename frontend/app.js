@@ -19,7 +19,7 @@ async function startMonitoring() {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'environment' } 
         });
-        video.srcObject = ;
+        video.srcObject = stream;
         await video.play();
         
         isMonitoring = true;
