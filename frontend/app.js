@@ -7,7 +7,7 @@ const stopBtn = document.getElementById('stopBtn');
 
 console.log('🚀 VIGIA PET iniciado!');
 
-// Inicializar Firebase
+// Inicializar Firebase test
 initFirebase();
 
 // Eventos
@@ -19,7 +19,7 @@ async function startMonitoring() {
         const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'environment' } 
         });
-        video.srcObject = stream;
+        video.srcObject = ;
         await video.play();
         
         isMonitoring = true;
