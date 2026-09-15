@@ -7,17 +7,17 @@
   ],
   "emulators": {
     "functions": {
-      "port": 2001
+      "port": 9100
     },
     "ui": {
       "enabled": true,
-      "port": 5000
+      "port": 9101
     },
     "hub": {
-      "port": 4401
+      "port": 9102
     },
     "logging": {
-      "port": 4501
+      "port": 9103
     },
     "singleProjectMode": true
   }
