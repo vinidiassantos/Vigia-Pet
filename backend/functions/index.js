@@ -9,12 +9,18 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 console.log('🔑 GEMINI_API_KEY carregada:', process.env.GEMINI_API_KEY ? '✅ Sim' : '❌ Não');
 
+if (!process.env.GEMINI_API_KEY) {
+    console.error('❌ ERRO: Chave do Gemini não encontrada!');
+    console.log('📁 Verifique o arquivo .env em:', path.resolve(__dirname, '.env'));
+}
+
 admin.initializeApp();
 const db = admin.firestore();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 exports.analisarVideo = functions.https.onCall(async (data, context) => {
     console.log('📥 Função analisarVideo chamada');
+    console.log('📦 Dados recebidos:', JSON.stringify(data));
     
     const { videoUrl } = data;
     if (!videoUrl) {
@@ -24,8 +30,8 @@ exports.analisarVideo = functions.https.onCall(async (data, context) => {
     try {
         console.log('🎯 Analisando vídeo:', videoUrl);
         
-        // Usar o modelo disponível (gemini-2.5-flash ou gemini-3.6-flash)
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        // ✅ USAR O MODELO CORRETO: gemini-3.6-flash
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
         
         const prompt = `
         Você é um especialista em comportamento animal.
@@ -45,7 +51,7 @@ exports.analisarVideo = functions.https.onCall(async (data, context) => {
            (Sim/Não e explique)
         `;
 
-        // Gemini analisa o vídeo diretamente da URL do YouTube
+        // Gemini analisa o vídeo diretamente da URL
         const result = await model.generateContent([
             prompt,
             {
