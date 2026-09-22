@@ -5,109 +5,104 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 
-// Carregar variáveis de ambiente
+// ============================================
+// CARREGAR VARIÁVEIS DE AMBIENTE
+// ============================================
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
 console.log('🔑 GEMINI_API_KEY carregada:', GEMINI_KEY ? '✅ Sim' : '❌ Não');
 
-if (!GEMINI_KEY) {
-    console.error('❌ ERRO: Chave do Gemini não encontrada no .env');
-}
-
-// Inicializar Firebase Admin
+// ============================================
+// INICIALIZAR FIREBASE ADMIN E GEMINI
+// ============================================
 admin.initializeApp();
 const db = admin.firestore();
-
-// Inicializar Gemini
-const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
 
 // ============================================
 // MODELOS EM ORDEM DE PREFERÊNCIA
-// (com Gemini Plus, priorizar modelos Pro)
 // ============================================
 const MODELOS_DISPONIVEIS = [
-    "gemini-2.5-pro",        // Melhor qualidade (Plus)
-    "gemini-2.5-flash",      // Rápido e capaz
-    "gemini-flash-latest",   // Sempre atualizado
-    "gemini-pro-latest"      // Sempre atualizado
+    "gemini-2.5-pro",   // Melhor qualidade
+    "gemini-2.5-flash", // Rápido e capaz
+    "gemini-3.6-flash", // Estável
+    "gemini-3.5-flash"  // Alternativa
 ];
 
-// ============================================
-// FUNÇÃO DE ESPERA
-// ============================================
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ============================================
-// ANÁLISE COM RETRY E FALLBACK
+// PROCESSAMENTO DE VÍDEO VIA GEMINI FILE API
 // ============================================
-async function analisarComFallback(prompt, videoUrl) {
+async function analisarComFallback(prompt, videoStoragePath) {
     let ultimoErro = null;
-    const MAX_TENTATIVAS = 3;
+    
+    // 1. Baixar o arquivo do Firebase Storage para o diretório temporário
+    const bucket = admin.storage().bucket();
+    const tempFilePath = path.join(os.tmpdir(), `pet_video_${Date.now()}.mp4`);
+    console.log('📥 Baixando arquivo do Storage para temporário...');
+    await bucket.file(videoStoragePath).download({ destination: tempFilePath });
 
+    // 2. Upload para a File API do Gemini
+    console.log('📤 Fazendo upload do arquivo para a File API do Gemini...');
+    const uploadResult = await ai.files.upload({
+        file: tempFilePath,
+        mimeType: 'video/mp4',
+    });
+
+    // 3. Aguardar o processamento do vídeo no servidor do Gemini
+    let fileState = await ai.files.get({ name: uploadResult.name });
+    while (fileState.state === "PROCESSING") {
+        console.log('⏳ Gemini processando o vídeo...');
+        await sleep(3000);
+        fileState = await ai.files.get({ name: uploadResult.name });
+    }
+
+    if (fileState.state === "FAILED") {
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        throw new Error("Falha no processamento do vídeo no servidor do Gemini.");
+    }
+
+    // 4. Execução dos modelos com Fallback
     for (const nomeModelo of MODELOS_DISPONIVEIS) {
-        for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
-            try {
-                console.log(`🔄 Tentando modelo: ${nomeModelo} (tentativa ${tentativa}/${MAX_TENTATIVAS})`);
-                
-                const model = genAI.getGenerativeModel({ model: nomeModelo });
-                
-                const result = await model.generateContent([
-                    prompt,
-                    {
-                        fileData: {
-                            mimeType: "video/mp4",
-                            fileUri: videoUrl
-                        }
-                    }
-                ]);
+        try {
+            console.log(`🔄 Tentando modelo: ${nomeModelo}`);
+            
+            const response = await ai.models.generateContent({
+                model: nomeModelo,
+                contents: [uploadResult, prompt]
+            });
 
-                const response = await result.response;
-                const texto = response.text();
-                
-                console.log(`✅ Sucesso com modelo: ${nomeModelo}`);
-                return { texto, modelo: nomeModelo };
+            // Limpeza dos arquivos temporários após o sucesso
+            if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+            await ai.files.delete({ name: uploadResult.name }).catch(() => {});
 
-            } catch (error) {
-                console.warn(`⚠️ Tentativa ${tentativa} falhou: ${error.message}`);
-                ultimoErro = error;
-                
-                // Erro 503 - Alta demanda
-                if (error.message.includes('503') || error.message.includes('high demand')) {
-                    if (tentativa < MAX_TENTATIVAS) {
-                        console.log(`⏳ Aguardando 5s...`);
-                        await sleep(5000);
-                    }
-                    continue;
-                }
-                
-                // Erro 429 - Cota excedida
-                if (error.message.includes('429') || error.message.includes('quota')) {
-                    if (tentativa < MAX_TENTATIVAS) {
-                        console.log(`⏳ Aguardando 30s por cota...`);
-                        await sleep(30000);
-                    }
-                    continue;
-                }
-                
-                // Erro 404 - Modelo não disponível, tenta próximo
-                if (error.message.includes('404') || error.message.includes('not available')) {
-                    break;
-                }
-                
-                // Outros erros - lança
-                throw error;
+            return { texto: response.text, modelo: nomeModelo };
+
+        } catch (error) {
+            console.warn(`⚠️ Modelo ${nomeModelo} falhou: ${error.message}`);
+            ultimoErro = error;
+            
+            if (error.message.includes('429') || error.message.includes('503')) {
+                await sleep(5000);
             }
         }
     }
 
-    throw new Error(`Todos os modelos falharam. Último erro: ${ultimoErro.message}`);
+    // Limpeza de emergência caso tudo falhe
+    if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+    await ai.files.delete({ name: uploadResult.name }).catch(() => {});
+
+    throw new Error(`Todos os modelos falharam. Último erro: ${ultimoErro ? ultimoErro.message : 'Desconhecido'}`);
 }
 
 // ============================================
@@ -116,27 +111,23 @@ async function analisarComFallback(prompt, videoUrl) {
 exports.analisarVideo = functions.https.onCall(async (data, context) => {
     console.log('📥 Função analisarVideo chamada');
     
-    const { videoUrl, modoTeste } = data;
+    const { videoPath, petId, modoTeste } = data;
     
-    if (!videoUrl) {
-        throw new functions.https.HttpsError('invalid-argument', 'URL do vídeo é obrigatória');
-    }
-
-    // Modo de teste (rápido)
     if (modoTeste === true) {
-        console.log('🧪 Modo de teste ativado');
         return {
             success: true,
             message: "Modo de teste - resposta simulada",
-            analise: `🐾 ANÁLISE SIMULADA\n\nURL: ${videoUrl}\n\nComportamento: Comendo\nConfiança: 95%\n\nDica: Mantenha água fresca por perto.`,
+            analise: `🐾 ANÁLISE SIMULADA\n\nComportamento: Comendo\nConfiança: 95%\n\nDica: Mantenha água fresca por perto.`,
             modelo: "teste",
             id: "teste-123"
         };
     }
 
+    if (!videoPath) {
+        throw new functions.https.HttpsError('invalid-argument', 'O caminho do vídeo (videoPath) no Firebase Storage é obrigatório.');
+    }
+
     try {
-        console.log('🎯 Analisando vídeo:', videoUrl);
-        
         const prompt = `
 Você é um especialista em comportamento animal, com foco em cães e gatos.
 Analise este vídeo de um pet e responda em português brasileiro:
@@ -157,19 +148,19 @@ Analise este vídeo de um pet e responda em português brasileiro:
 Responda de forma organizada, com títulos para cada seção.
         `;
 
-        const { texto, modelo } = await analisarComFallback(prompt, videoUrl);
+        const { texto, modelo } = await analisarComFallback(prompt, videoPath);
         
         // Salvar no Firestore
         let docId = null;
         try {
             const docRef = await db.collection('analises').add({
-                videoUrl: videoUrl,
+                petId: petId || 'desconhecido',
+                videoPath: videoPath,
                 analise: texto,
                 modeloUsado: modelo,
                 timestamp: admin.firestore.FieldValue.serverTimestamp()
             });
             docId = docRef.id;
-            console.log('💾 Análise salva no Firestore:', docId);
         } catch (dbError) {
             console.warn('⚠️ Erro ao salvar no Firestore:', dbError.message);
         }
@@ -192,7 +183,6 @@ Responda de forma organizada, com títulos para cada seção.
 // CLOUD FUNCTION: TESTE (DIAGNÓSTICO)
 // ============================================
 exports.teste = functions.https.onCall(async (data, context) => {
-    console.log('📥 Função teste chamada');
     return {
         success: true,
         message: "Função de teste funcionando!",
@@ -220,5 +210,3 @@ exports.listarAnalises = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
-
-console.log('✅ Functions carregadas: analisarVideo, teste, listarAnalises');
