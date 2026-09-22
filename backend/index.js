@@ -1,127 +1,127 @@
 // backend/functions/index.js
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-console.log('🔑 GEMINI_API_KEY carregada:', process.env.GEMINI_API_KEY ? '✅ Sim' : '❌ Não');
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
 admin.initializeApp();
 const db = admin.firestore();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
 
-// Lista de modelos em ordem de preferência (fallback)
 const MODELOS_DISPONIVEIS = [
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-3.8-flash",
+    "gemini-2.5-pro",
     "gemini-2.5-flash",
-    "gemini-flash-latest"
+    "gemini-3.6-flash",
+    "gemini-3.5-flash"
 ];
 
-/**
- * Tenta analisar o vídeo com fallback entre modelos
- */
-async function analisarComFallback(prompt, videoUrl) {
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function analisarComFallback(prompt, videoStoragePath) {
     let ultimoErro = null;
+    const bucket = admin.storage().bucket();
+    const tempFilePath = path.join(os.tmpdir(), `pet_video_${Date.now()}.mp4`);
+    
+    await bucket.file(videoStoragePath).download({ destination: tempFilePath });
+
+    const uploadResult = await ai.files.upload({
+        file: tempFilePath,
+        mimeType: 'video/mp4',
+    });
+
+    let fileState = await ai.files.get({ name: uploadResult.name });
+    while (fileState.state === "PROCESSING") {
+        await sleep(3000);
+        fileState = await ai.files.get({ name: uploadResult.name });
+    }
+
+    if (fileState.state === "FAILED") {
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        throw new Error("Falha no processamento do vídeo no Gemini.");
+    }
 
     for (const nomeModelo of MODELOS_DISPONIVEIS) {
         try {
-            console.log(`🔄 Tentando modelo: ${nomeModelo}`);
-            
-            const model = genAI.getGenerativeModel({ model: nomeModelo });
-            
-            const result = await model.generateContent([
-                prompt,
-                {
-                    fileData: {
-                        mimeType: "video/mp4",
-                        fileUri: videoUrl
-                    }
-                }
-            ]);
+            const response = await ai.models.generateContent({
+                model: nomeModelo,
+                contents: [uploadResult, prompt]
+            });
 
-            const response = await result.response;
-            const texto = response.text();
-            
-            console.log(`✅ Sucesso com modelo: ${nomeModelo}`);
-            return { texto, modelo: nomeModelo };
+            if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+            await ai.files.delete({ name: uploadResult.name }).catch(() => {});
 
+            return { texto: response.text, modelo: nomeModelo };
         } catch (error) {
-            console.warn(`⚠️ Modelo ${nomeModelo} falhou: ${error.message}`);
             ultimoErro = error;
-            
-            // Se for erro de modelo indisponível, tenta o próximo
-            if (error.message.includes('503') || 
-                error.message.includes('404') || 
-                error.message.includes('not available') ||
-                error.message.includes('high demand')) {
-                continue;
+            if (error.message.includes('429') || error.message.includes('503')) {
+                await sleep(5000);
             }
-            
-            // Se for outro tipo de erro, lança imediatamente
-            throw error;
         }
     }
 
-    // Se nenhum modelo funcionou
-    throw new Error(`Nenhum modelo disponível. Último erro: ${ultimoErro.message}`);
+    if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+    await ai.files.delete({ name: uploadResult.name }).catch(() => {});
+    throw new Error(`Todos os modelos falharam. Erro: ${ultimoErro ? ultimoErro.message : 'Desconhecido'}`);
 }
 
 exports.analisarVideo = functions.https.onCall(async (data, context) => {
-    console.log('📥 Função analisarVideo chamada');
+    const { videoPath, petId, modoTeste } = data;
     
-    const { videoUrl } = data;
-    if (!videoUrl) {
-        throw new functions.https.HttpsError('invalid-argument', 'URL do vídeo é obrigatória');
+    if (modoTeste === true) {
+        return {
+            success: true,
+            analise: "🐾 ANÁLISE SIMULADA\n\nComportamento: Comendo\nDica: Mantenha água fresca por perto.",
+            modelo: "teste"
+        };
+    }
+
+    if (!videoPath) {
+        throw new functions.https.HttpsError('invalid-argument', 'O caminho do vídeo é obrigatório.');
     }
 
     try {
-        console.log('🎯 Analisando vídeo:', videoUrl);
-        
         const prompt = `
-        Você é um especialista em comportamento animal.
-        Analise este vídeo de um pet e responda em português:
+Você é um especialista em comportamento animal (cães e gatos).
+Analise este vídeo de um pet e responda em português brasileiro:
 
-        1. 🐾 QUAL É O COMPORTAMENTO PRINCIPAL?
-           (Dormindo / Comendo / Agitado / Brincando / Outro)
+1. 🐾 COMPORTAMENTO PRINCIPAL:
+   Escolha UMA das opções: Dormindo / Comendo / Agitado / Brincando / Bravo / Outro
 
-        2. 📊 DESCRIÇÃO DETALHADA:
-           Descreva o que está acontecendo no vídeo.
+2. 📊 DESCRIÇÃO DETALHADA:
+   Descreva o que está acontecendo no vídeo.
 
-        3. 💡 DICA PARA O DONO:
-           Dê uma dica prática e útil.
+3. 💡 DICA PARA O DONO:
+   Dê uma dica prática baseada no comportamento.
 
-        4. ⚠️ ALERTA:
-           Há algum sinal de estresse, doença ou perigo?
-           (Sim/Não e explique)
+4. ⚠️ ALERTA:
+   Há algum sinal de estresse, doença, dor ou perigo? (Sim/Não)
         `;
 
-        const { texto, modelo } = await analisarComFallback(prompt, videoUrl);
+        const { texto, modelo } = await analisarComFallback(prompt, videoPath);
         
-        // Salvar no Firestore
         const docRef = await db.collection('analises').add({
-            videoUrl: videoUrl,
+            petId: petId || 'desconhecido',
+            videoPath,
             analise: texto,
             modeloUsado: modelo,
             timestamp: admin.firestore.FieldValue.serverTimestamp()
         });
-        
-        return {
-            success: true,
-            message: `Análise concluída (modelo: ${modelo})`,
-            analise: texto,
-            modelo: modelo,
-            id: docRef.id
-        };
 
+        return { success: true, analise: texto, modelo, id: docRef.id };
     } catch (error) {
-        console.error('❌ Erro:', error);
         throw new functions.https.HttpsError('internal', error.message);
     }
 });
 
-console.log('✅ Functions carregadas!');
+exports.teste = functions.https.onCall(async () => {
+    return { success: true, message: "Função ativa!" };
+});
