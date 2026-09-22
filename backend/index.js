@@ -109,7 +109,7 @@ Analise este vídeo de um pet e responda em português brasileiro:
         const { texto, modelo } = await analisarComFallback(prompt, videoPath);
         
         const docRef = await db.collection('analises').add({
-            petId: petId || 'desconhecido',
+            petId: petId || 'desconhecidoS',
             videoPath,
             analise: texto,
             modeloUsado: modelo,
