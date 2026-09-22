@@ -1,91 +1,113 @@
 ﻿// backend/functions/index.js
+// ============================================
+// VIGIA PET - CLOUD FUNCTIONS COM GEMINI
+// ============================================
+
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// ============================================
-// CARREGAR VARIÁVEIS DE AMBIENTE
-// ============================================
+// Carregar variáveis de ambiente
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
-console.log('🔑 GEMINI_API_KEY carregada:', process.env.GEMINI_API_KEY ? '✅ Sim' : '❌ Não');
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
+console.log('🔑 GEMINI_API_KEY carregada:', GEMINI_KEY ? '✅ Sim' : '❌ Não');
 
-if (!process.env.GEMINI_API_KEY) {
-    console.error('❌ ERRO: Chave do Gemini não encontrada!');
-    console.log('📁 Verifique o arquivo .env em:', path.resolve(__dirname, '.env'));
+if (!GEMINI_KEY) {
+    console.error('❌ ERRO: Chave do Gemini não encontrada no .env');
 }
 
-// ============================================
-// INICIALIZAR FIREBASE ADMIN
-// ============================================
+// Inicializar Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 
-// ============================================
-// INICIALIZAR GEMINI
-// ============================================
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Inicializar Gemini
+const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 
 // ============================================
-// LISTA DE MODELOS PARA FALLBACK
+// MODELOS EM ORDEM DE PREFERÊNCIA
+// (com Gemini Plus, priorizar modelos Pro)
 // ============================================
 const MODELOS_DISPONIVEIS = [
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-3.8-flash",
-    "gemini-2.5-flash",
-    "gemini-flash-latest"
+    "gemini-2.5-pro",        // Melhor qualidade (Plus)
+    "gemini-2.5-flash",      // Rápido e capaz
+    "gemini-flash-latest",   // Sempre atualizado
+    "gemini-pro-latest"      // Sempre atualizado
 ];
 
 // ============================================
-// FUNÇÃO AUXILIAR: ANALISAR COM FALLBACK
+// FUNÇÃO DE ESPERA
+// ============================================
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ============================================
+// ANÁLISE COM RETRY E FALLBACK
 // ============================================
 async function analisarComFallback(prompt, videoUrl) {
     let ultimoErro = null;
+    const MAX_TENTATIVAS = 3;
 
     for (const nomeModelo of MODELOS_DISPONIVEIS) {
-        try {
-            console.log(`🔄 Tentando modelo: ${nomeModelo}`);
-            
-            const model = genAI.getGenerativeModel({ model: nomeModelo });
-            
-            const result = await model.generateContent([
-                prompt,
-                {
-                    fileData: {
-                        mimeType: "video/mp4",
-                        fileUri: videoUrl
+        for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+            try {
+                console.log(`🔄 Tentando modelo: ${nomeModelo} (tentativa ${tentativa}/${MAX_TENTATIVAS})`);
+                
+                const model = genAI.getGenerativeModel({ model: nomeModelo });
+                
+                const result = await model.generateContent([
+                    prompt,
+                    {
+                        fileData: {
+                            mimeType: "video/mp4",
+                            fileUri: videoUrl
+                        }
                     }
+                ]);
+
+                const response = await result.response;
+                const texto = response.text();
+                
+                console.log(`✅ Sucesso com modelo: ${nomeModelo}`);
+                return { texto, modelo: nomeModelo };
+
+            } catch (error) {
+                console.warn(`⚠️ Tentativa ${tentativa} falhou: ${error.message}`);
+                ultimoErro = error;
+                
+                // Erro 503 - Alta demanda
+                if (error.message.includes('503') || error.message.includes('high demand')) {
+                    if (tentativa < MAX_TENTATIVAS) {
+                        console.log(`⏳ Aguardando 5s...`);
+                        await sleep(5000);
+                    }
+                    continue;
                 }
-            ]);
-
-            const response = await result.response;
-            const texto = response.text();
-            
-            console.log(`✅ Sucesso com modelo: ${nomeModelo}`);
-            return { texto, modelo: nomeModelo };
-
-        } catch (error) {
-            console.warn(`⚠️ Modelo ${nomeModelo} falhou: ${error.message}`);
-            ultimoErro = error;
-            
-            // Se for erro de modelo indisponível, tenta o próximo
-            if (error.message.includes('503') || 
-                error.message.includes('404') || 
-                error.message.includes('not available') ||
-                error.message.includes('high demand')) {
-                continue;
+                
+                // Erro 429 - Cota excedida
+                if (error.message.includes('429') || error.message.includes('quota')) {
+                    if (tentativa < MAX_TENTATIVAS) {
+                        console.log(`⏳ Aguardando 30s por cota...`);
+                        await sleep(30000);
+                    }
+                    continue;
+                }
+                
+                // Erro 404 - Modelo não disponível, tenta próximo
+                if (error.message.includes('404') || error.message.includes('not available')) {
+                    break;
+                }
+                
+                // Outros erros - lança
+                throw error;
             }
-            
-            // Se for outro tipo de erro, lança imediatamente
-            throw error;
         }
     }
 
-    // Se nenhum modelo funcionou
-    throw new Error(`Nenhum modelo disponível. Último erro: ${ultimoErro.message}`);
+    throw new Error(`Todos os modelos falharam. Último erro: ${ultimoErro.message}`);
 }
 
 // ============================================
@@ -93,7 +115,6 @@ async function analisarComFallback(prompt, videoUrl) {
 // ============================================
 exports.analisarVideo = functions.https.onCall(async (data, context) => {
     console.log('📥 Função analisarVideo chamada');
-    console.log('📦 Dados recebidos:', JSON.stringify(data));
     
     const { videoUrl, modoTeste } = data;
     
@@ -101,9 +122,7 @@ exports.analisarVideo = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('invalid-argument', 'URL do vídeo é obrigatória');
     }
 
-    // ============================================
-    // MODO DE TESTE: Retorna resposta rápida
-    // ============================================
+    // Modo de teste (rápido)
     if (modoTeste === true) {
         console.log('🧪 Modo de teste ativado');
         return {
@@ -115,30 +134,27 @@ exports.analisarVideo = functions.https.onCall(async (data, context) => {
         };
     }
 
-    // ============================================
-    // ANÁLISE REAL COM GEMINI
-    // ============================================
     try {
         console.log('🎯 Analisando vídeo:', videoUrl);
         
         const prompt = `
-        Você é um especialista em comportamento animal.
-        Analise este vídeo de um pet e responda em português:
+Você é um especialista em comportamento animal, com foco em cães e gatos.
+Analise este vídeo de um pet e responda em português brasileiro:
 
-        1. 🐾 QUAL É O COMPORTAMENTO PRINCIPAL?
-           (Dormindo / Comendo / Agitado / Brincando / Outro)
+1. 🐾 COMPORTAMENTO PRINCIPAL:
+   Escolha UMA das opções: Dormindo / Comendo / Agitado / Brincando / Bravo / Outro
 
-        2. 📊 DESCRIÇÃO DETALHADA:
-           Descreva o que está acontecendo no vídeo.
+2. 📊 DESCRIÇÃO DETALHADA:
+   Descreva o que está acontecendo no vídeo de forma clara.
 
-        3. 💡 DICA PARA O DONO:
-           Dê uma dica prática e útil.
+3. 💡 DICA PARA O DONO:
+   Dê uma dica prática e útil baseada no comportamento observado.
 
-        4. ⚠️ ALERTA:
-           Há algum sinal de estresse, doença ou perigo?
-           (Sim/Não e explique)
+4. ⚠️ ALERTA:
+   Há algum sinal de estresse, doença, dor ou perigo? (Sim/Não)
+   Se sim, explique o que você observou.
 
-        Seja específico e use uma linguagem que qualquer dono de pet entenda.
+Responda de forma organizada, com títulos para cada seção.
         `;
 
         const { texto, modelo } = await analisarComFallback(prompt, videoUrl);
@@ -185,53 +201,24 @@ exports.teste = functions.https.onCall(async (data, context) => {
 });
 
 // ============================================
-// CLOUD FUNCTION: PROCESSAR LOTE DE VÍDEOS
+// CLOUD FUNCTION: LISTAR ANÁLISES
 // ============================================
-exports.processarLoteVideos = functions.https.onCall(async (data, context) => {
-    console.log('📥 Função processarLoteVideos chamada');
-    
-    const { videoUrls } = data;
-    if (!videoUrls || !Array.isArray(videoUrls)) {
-        throw new functions.https.HttpsError('invalid-argument', 'Lista de URLs inválida');
+exports.listarAnalises = functions.https.onCall(async (data, context) => {
+    try {
+        const snapshot = await db.collection('analises')
+            .orderBy('timestamp', 'desc')
+            .limit(20)
+            .get();
+        
+        const analises = [];
+        snapshot.forEach(doc => {
+            analises.push({ id: doc.id, ...doc.data() });
+        });
+        
+        return { success: true, analises };
+    } catch (error) {
+        throw new functions.https.HttpsError('internal', error.message);
     }
-
-    const resultados = [];
-    
-    for (const url of videoUrls) {
-        try {
-            const prompt = `
-            Analise este vídeo de pet e responda:
-            1. Comportamento principal (Dormindo / Comendo / Agitado / Brincando / Outro)
-            2. Descrição detalhada
-            3. Dica para o dono
-            `;
-            
-            const { texto, modelo } = await analisarComFallback(prompt, url);
-            
-            resultados.push({
-                videoUrl: url,
-                analise: texto,
-                modelo: modelo,
-                sucesso: true
-            });
-        } catch (error) {
-            resultados.push({
-                videoUrl: url,
-                erro: error.message,
-                sucesso: false
-            });
-        }
-    }
-    
-    return {
-        success: true,
-        total: resultados.length,
-        resultados: resultados
-    };
 });
 
-// ============================================
-// LOG FINAL
-// ============================================
-console.log('✅ Functions carregadas!');
-console.log('📋 Funções disponíveis: analisarVideo, teste, processarLoteVideos');
+console.log('✅ Functions carregadas: analisarVideo, teste, listarAnalises');
