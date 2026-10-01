@@ -13,7 +13,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 
-// Endpoint local ou remoto
+// Seleção dinâmica do Endpoint (Local Emulador x Produção Cloud Functions)
 const FUNCTION_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://127.0.0.1:5001/vigia-pet/us-central1/analisarVideo"
     : "https://us-central1-vigia-pet.cloudfunctions.net/analisarVideo";
@@ -24,11 +24,16 @@ let recordedChunks = [];
 let isRecording = false;
 
 const ICONES = {
-    "Dormindo": "😴", "Comendo": "🍖", "Agitado": "⚡",
-    "Brincando": "🎾", "Bravo": "😠", "Estressado": "😰", "Outro": "🐾"
+    "Dormindo": "😴",
+    "Comendo": "🍖",
+    "Agitado": "⚡",
+    "Brincando": "🎾",
+    "Bravo": "😠",
+    "Estressado": "😰",
+    "Outro": "🐾"
 };
 
-// 1. Iniciar Câmara com proteção contra elementos inexistentes
+// 1. Inicializar Câmera com verificação segura de elementos
 async function iniciarCamera() {
     try {
         const videoElem = document.getElementById("video");
@@ -45,20 +50,23 @@ async function iniciarCamera() {
         videoElem.srcObject = mediaStream;
         atualizarOverlay("🔍", "Câmera Pronta");
     } catch (err) {
-        console.error("Erro ao aceder à câmara:", err);
+        console.error("Erro ao acessar câmera:", err);
         atualizarOverlay("❌", "Erro Câmera");
-        alert("Não foi possível aceder à câmara. Verifique se o navegador tem permissão ou se outra app a está a usar.");
+        alert("Não foi possível acessar a câmera. Verifique se o navegador tem permissão ou se outra aplicação está utilizando a câmera.");
     }
 }
 
-// 2. Função principal para gravar e analisar com a IA
+// 2. Gravar vídeo e acionar análise da IA Gemini
 async function iniciarMonitoramento() {
     if (isRecording || !mediaStream) return;
 
     const vigiarBtn = document.getElementById("vigiarBtn");
     isRecording = true;
     recordedChunks = [];
-    if (vigiarBtn) vigiarBtn.disabled = true;
+    
+    if (vigiarBtn) {
+        vigiarBtn.disabled = true;
+    }
 
     atualizarOverlay("🎥", "Gravando (10s)...");
 
@@ -83,10 +91,12 @@ async function iniciarMonitoramento() {
             const videoStoragePath = `videos_pets/${petId}/${Date.now()}.mp4`;
             const storageRef = ref(storage, videoStoragePath);
 
+            // Upload para o Firebase Storage
             await uploadBytes(storageRef, blob);
 
             atualizarOverlay("🤖", "Gemini Analisando...");
 
+            // Requisição POST para o backend
             const response = await fetch(FUNCTION_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -103,32 +113,39 @@ async function iniciarMonitoramento() {
             }
 
         } catch (error) {
-            console.error("Erro de comunicação com o servidor:", error);
-            atualizarOverlay("❌", "Erro de Conexão");
+            console.error("Erro na integração:", error);
+            atualizarOverlay("❌", "Erro Conexão");
         } finally {
             isRecording = false;
-            if (vigiarBtn) vigiarBtn.disabled = false;
+            if (vigiarBtn) {
+                vigiarBtn.disabled = false;
+            }
         }
     };
 
+    // Inicia gravação de 10 segundos
     mediaRecorder.start();
     setTimeout(() => {
-        if (mediaRecorder.state === "recording") {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
             mediaRecorder.stop();
         }
     }, 10000);
 }
 
-// 3. Atualizar textos de forma segura (sem dar erro de 'null')
+// 3. Função auxiliar para atualizar overlays sem gerar erro de 'null'
 function atualizarOverlay(icone, texto) {
     const behaviorIcon = document.getElementById("behaviorIcon");
     const behaviorText = document.getElementById("behaviorText");
 
-    if (behaviorIcon) behaviorIcon.textContent = icone;
-    if (behaviorText) behaviorText.textContent = texto;
+    if (behaviorIcon) {
+        behaviorIcon.textContent = icone;
+    }
+    if (behaviorText) {
+        behaviorText.textContent = texto;
+    }
 }
 
-// 4. Renderizar os resultados na lista
+// 4. Renderizar resposta da IA no Dashboard
 function renderizarResultados(data) {
     const iconeComportamento = ICONES[data.comportamento] || "🐾";
     atualizarOverlay(iconeComportamento, data.comportamento);
@@ -147,15 +164,17 @@ function renderizarResultados(data) {
     }
 }
 
-// 5. Associar eventos quando a página estiver carregada
+// 5. Inicialização após o carregamento completo do DOM
 document.addEventListener("DOMContentLoaded", () => {
     iniciarCamera();
 
     const vigiarBtn = document.getElementById("vigiarBtn");
     if (vigiarBtn) {
-        // Remove ouvintes antigos substituindo o botão pelo seu clone limpo
-        const newBtn = vigiarBtn.cloneNode(true);
-        vigiarBtn.parentNode.replaceChild(newBtn, vigiarBtn);
-        newBtn.addEventListener("click", iniciarMonitoramento);
+        // Remove event listeners antigos clonando o nó
+        const btnLimpo = vigiarBtn.cloneNode(true);
+        if (vigiarBtn.parentNode) {
+            vigiarBtn.parentNode.replaceChild(btnLimpo, vigiarBtn);
+        }
+        btnLimpo.addEventListener("click", iniciarMonitoramento);
     }
 });
