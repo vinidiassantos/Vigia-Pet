@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-// 1. Configuração do Firebase
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "SUA_API_KEY",
     authDomain: "vigia-pet.firebaseapp.com",
@@ -13,17 +13,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 
-// Seleção automática do endpoint (Local no emulador vs Produção)
+// Endpoint local ou remoto
 const FUNCTION_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://127.0.0.1:5001/vigia-pet/us-central1/analisarVideo"
     : "https://us-central1-vigia-pet.cloudfunctions.net/analisarVideo";
-
-// Elementos da Interface
-const videoElem = document.getElementById("video");
-const vigiarBtn = document.getElementById("vigiarBtn");
-const behaviorIcon = document.getElementById("behaviorIcon");
-const behaviorText = document.getElementById("behaviorText");
-const iaList = document.getElementById("iaList");
 
 let mediaStream = null;
 let mediaRecorder = null;
@@ -31,38 +24,42 @@ let recordedChunks = [];
 let isRecording = false;
 
 const ICONES = {
-    "Dormindo": "😴",
-    "Comendo": "🍖",
-    "Agitado": "⚡",
-    "Brincando": "🎾",
-    "Bravo": "😠",
-    "Estressado": "😰",
-    "Outro": "🐾"
+    "Dormindo": "😴", "Comendo": "🍖", "Agitado": "⚡",
+    "Brincando": "🎾", "Bravo": "😠", "Estressado": "😰", "Outro": "🐾"
 };
 
-// 2. Inicializar a câmara sem forçarfacingMode (evita erro em webcams integradas)
+// 1. Iniciar Câmara com proteção contra elementos inexistentes
 async function iniciarCamera() {
     try {
+        const videoElem = document.getElementById("video");
+        if (!videoElem) {
+            console.error("Elemento <video id='video'> não foi encontrado no HTML.");
+            return;
+        }
+
         mediaStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false
         });
+
         videoElem.srcObject = mediaStream;
         atualizarOverlay("🔍", "Câmera Pronta");
     } catch (err) {
-        console.error("Erro ao acessar câmera:", err);
+        console.error("Erro ao aceder à câmara:", err);
         atualizarOverlay("❌", "Erro Câmera");
-        alert("Não foi possível acessar a câmara. Verifique as permissões do navegador ou se outra app está a usá-la.");
+        alert("Não foi possível aceder à câmara. Verifique se o navegador tem permissão ou se outra app a está a usar.");
     }
 }
 
-// 3. Gravar clipe e acionar a análise da IA
+// 2. Função principal para gravar e analisar com a IA
 async function iniciarMonitoramento() {
     if (isRecording || !mediaStream) return;
-    
+
+    const vigiarBtn = document.getElementById("vigiarBtn");
     isRecording = true;
     recordedChunks = [];
-    vigiarBtn.disabled = true;
+    if (vigiarBtn) vigiarBtn.disabled = true;
+
     atualizarOverlay("🎥", "Gravando (10s)...");
 
     try {
@@ -80,18 +77,16 @@ async function iniciarMonitoramento() {
     mediaRecorder.onstop = async () => {
         try {
             atualizarOverlay("⏳", "Enviando Vídeo...");
-            
+
             const blob = new Blob(recordedChunks, { type: "video/mp4" });
             const petId = "pet1";
             const videoStoragePath = `videos_pets/${petId}/${Date.now()}.mp4`;
             const storageRef = ref(storage, videoStoragePath);
 
-            // Upload para o Firebase Storage
             await uploadBytes(storageRef, blob);
 
             atualizarOverlay("🤖", "Gemini Analisando...");
 
-            // Enviar requisição para a Cloud Function
             const response = await fetch(FUNCTION_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -108,15 +103,14 @@ async function iniciarMonitoramento() {
             }
 
         } catch (error) {
-            console.error("Erro de conexão com o backend:", error);
+            console.error("Erro de comunicação com o servidor:", error);
             atualizarOverlay("❌", "Erro de Conexão");
         } finally {
             isRecording = false;
-            vigiarBtn.disabled = false;
+            if (vigiarBtn) vigiarBtn.disabled = false;
         }
     };
 
-    // Grava por 10 segundos
     mediaRecorder.start();
     setTimeout(() => {
         if (mediaRecorder.state === "recording") {
@@ -125,17 +119,21 @@ async function iniciarMonitoramento() {
     }, 10000);
 }
 
-// 4. Atualizar o texto e ícone sobrepostos na câmara
+// 3. Atualizar textos de forma segura (sem dar erro de 'null')
 function atualizarOverlay(icone, texto) {
-    if (behaviorIcon) behaviorIcon.innerText = icone;
-    if (behaviorText) behaviorText.innerText = texto;
+    const behaviorIcon = document.getElementById("behaviorIcon");
+    const behaviorText = document.getElementById("behaviorText");
+
+    if (behaviorIcon) behaviorIcon.textContent = icone;
+    if (behaviorText) behaviorText.textContent = texto;
 }
 
-// 5. Preencher os dados retornados na seção "Dicas da IA"
+// 4. Renderizar os resultados na lista
 function renderizarResultados(data) {
     const iconeComportamento = ICONES[data.comportamento] || "🐾";
     atualizarOverlay(iconeComportamento, data.comportamento);
 
+    const iaList = document.getElementById("iaList");
     if (iaList) {
         iaList.innerHTML = `
             <li class="ia-item">🐾 <strong>Raça:</strong> ${data.racaProvavel || 'SRD / Misto'}</li>
@@ -149,11 +147,15 @@ function renderizarResultados(data) {
     }
 }
 
-// Event Listeners ao carregar a página
+// 5. Associar eventos quando a página estiver carregada
 document.addEventListener("DOMContentLoaded", () => {
     iniciarCamera();
 
+    const vigiarBtn = document.getElementById("vigiarBtn");
     if (vigiarBtn) {
-        vigiarBtn.addEventListener("click", iniciarMonitoramento);
+        // Remove ouvintes antigos substituindo o botão pelo seu clone limpo
+        const newBtn = vigiarBtn.cloneNode(true);
+        vigiarBtn.parentNode.replaceChild(newBtn, vigiarBtn);
+        newBtn.addEventListener("click", iniciarMonitoramento);
     }
 });
