@@ -1,7 +1,8 @@
-// frontend/app.js
+// frontend/js/app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
+// 1. Configuração do Firebase
 const firebaseConfig = {
     apiKey: "SUA_API_KEY",
     authDomain: "vigia-pet.firebaseapp.com",
@@ -12,52 +13,147 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 
-// URL da sua Cloud Function (ou http://127.0.0.1:5001/vigia-pet/us-central1/analisarVideo para testes locais)
-const FUNCTION_URL = "https://us-central1-vigia-pet.cloudfunctions.net/analisarVideo";
+// Seleção automática do endpoint (Local no emulador vs Produção)
+const FUNCTION_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:5001/vigia-pet/us-central1/analisarVideo"
+    : "https://us-central1-vigia-pet.cloudfunctions.net/analisarVideo";
 
-export async function processarEAnalisarVideo(blobVideo, petId) {
+// Elementos da Interface
+const videoElem = document.getElementById("video");
+const vigiarBtn = document.getElementById("vigiarBtn");
+const behaviorIcon = document.getElementById("behaviorIcon");
+const behaviorText = document.getElementById("behaviorText");
+const iaList = document.getElementById("iaList");
+
+let mediaStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+
+const ICONES = {
+    "Dormindo": "😴",
+    "Comendo": "🍖",
+    "Agitado": "⚡",
+    "Brincando": "🎾",
+    "Bravo": "😠",
+    "Estressado": "😰",
+    "Outro": "🐾"
+};
+
+// 2. Inicializar a câmara sem forçarfacingMode (evita erro em webcams integradas)
+async function iniciarCamera() {
     try {
-        exibirStatus("⏳ Fazendo upload do clipe de vídeo...");
-        
-        // 1. Upload do vídeo para o Firebase Storage
-        const videoStoragePath = `videos_pets/${petId}/${Date.now()}.mp4`;
-        const storageRef = ref(storage, videoStoragePath);
-        await uploadBytes(storageRef, blobVideo);
-
-        exibirStatus("🤖 Analisando comportamento e raça com a IA Gemini...");
-
-        // 2. Chamada HTTP para a Cloud Function
-        const response = await fetch(FUNCTION_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ videoStoragePath, petId })
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
         });
-
-        const resData = await response.json();
-
-        if (resData.success) {
-            exibirStatus("✅ Análise concluída!");
-            atualizarDashboardUI(resData.data);
-        } else {
-            exibirStatus("❌ Falha na análise: " + resData.error);
-        }
-
-    } catch (error) {
-        console.error("Erro na integração:", error);
-        exibirStatus("❌ Erro de conexão ao analisar o vídeo.");
+        videoElem.srcObject = mediaStream;
+        atualizarOverlay("🔍", "Câmera Pronta");
+    } catch (err) {
+        console.error("Erro ao acessar câmera:", err);
+        atualizarOverlay("❌", "Erro Câmera");
+        alert("Não foi possível acessar a câmara. Verifique as permissões do navegador ou se outra app está a usá-la.");
     }
 }
 
-function atualizarDashboardUI(data) {
-    console.log("Resultado da Análise:", data);
-    // Atualiza os elementos na tela do Vigia Pet
-    if (document.getElementById("raca-pet")) document.getElementById("raca-pet").innerText = data.racaProvavel;
-    if (document.getElementById("comportamento-pet")) document.getElementById("comportamento-pet").innerText = data.comportamento;
-    if (document.getElementById("descricao-pet")) document.getElementById("descricao-pet").innerText = data.descricao;
-    if (document.getElementById("dica-ia")) document.getElementById("dica-ia").innerText = data.dica;
+// 3. Gravar clipe e acionar a análise da IA
+async function iniciarMonitoramento() {
+    if (isRecording || !mediaStream) return;
+    
+    isRecording = true;
+    recordedChunks = [];
+    vigiarBtn.disabled = true;
+    atualizarOverlay("🎥", "Gravando (10s)...");
+
+    try {
+        mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp9' });
+    } catch (e) {
+        mediaRecorder = new MediaRecorder(mediaStream);
+    }
+
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+        }
+    };
+
+    mediaRecorder.onstop = async () => {
+        try {
+            atualizarOverlay("⏳", "Enviando Vídeo...");
+            
+            const blob = new Blob(recordedChunks, { type: "video/mp4" });
+            const petId = "pet1";
+            const videoStoragePath = `videos_pets/${petId}/${Date.now()}.mp4`;
+            const storageRef = ref(storage, videoStoragePath);
+
+            // Upload para o Firebase Storage
+            await uploadBytes(storageRef, blob);
+
+            atualizarOverlay("🤖", "Gemini Analisando...");
+
+            // Enviar requisição para a Cloud Function
+            const response = await fetch(FUNCTION_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ videoStoragePath, petId })
+            });
+
+            const resData = await response.json();
+
+            if (resData.success && resData.data) {
+                renderizarResultados(resData.data);
+            } else {
+                atualizarOverlay("⚠️", "Erro na Análise");
+                alert("Falha na análise: " + (resData.error || "Erro desconhecido"));
+            }
+
+        } catch (error) {
+            console.error("Erro de conexão com o backend:", error);
+            atualizarOverlay("❌", "Erro de Conexão");
+        } finally {
+            isRecording = false;
+            vigiarBtn.disabled = false;
+        }
+    };
+
+    // Grava por 10 segundos
+    mediaRecorder.start();
+    setTimeout(() => {
+        if (mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+        }
+    }, 10000);
 }
 
-function exibirStatus(mensagem) {
-    const statusElem = document.getElementById("status-mensagem");
-    if (statusElem) statusElem.innerText = mensagem;
+// 4. Atualizar o texto e ícone sobrepostos na câmara
+function atualizarOverlay(icone, texto) {
+    if (behaviorIcon) behaviorIcon.innerText = icone;
+    if (behaviorText) behaviorText.innerText = texto;
 }
+
+// 5. Preencher os dados retornados na seção "Dicas da IA"
+function renderizarResultados(data) {
+    const iconeComportamento = ICONES[data.comportamento] || "🐾";
+    atualizarOverlay(iconeComportamento, data.comportamento);
+
+    if (iaList) {
+        iaList.innerHTML = `
+            <li class="ia-item">🐾 <strong>Raça:</strong> ${data.racaProvavel || 'SRD / Misto'}</li>
+            <li class="ia-item">📊 <strong>Descrição:</strong> ${data.descricao}</li>
+            <li class="ia-item">💡 <strong>Dica:</strong> ${data.dica}</li>
+        `;
+    }
+
+    if (data.alerta) {
+        alert(`⚠️ ALERTA DO GEMINI: ${data.detalhesAlerta || 'Comportamento atípico detectado!'}`);
+    }
+}
+
+// Event Listeners ao carregar a página
+document.addEventListener("DOMContentLoaded", () => {
+    iniciarCamera();
+
+    if (vigiarBtn) {
+        vigiarBtn.addEventListener("click", iniciarMonitoramento);
+    }
+});

@@ -4,3 +4,8 @@ node_modules/
 *.csv
 *.mp4
 scripts/
+
+.env
+*.env
+backend/functions/.env
+firebase-debug.log
