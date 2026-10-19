@@ -7,7 +7,7 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 /**
  * Converte um ficheiro (imagem/vídeo) para o formato base64 necessário para a API do Gemini.
  * @param {File} file 
- * @returns {Promise<{inlineData: {data: string, mimeType: string}}>}
+ * @returns {Promise<{inlineData: {data: string, mimeType: string}}>} 
  */
 async function fileToGenerativePart(file) {
   return new Promise((resolve, reject) => {
