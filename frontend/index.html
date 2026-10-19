@@ -27,11 +27,30 @@
             </div>
         </div>
 
-        <!-- Botão VIGIAR (Grande) -->
-        <button id="vigiarBtn" class="vigiar-btn">
-            <span class="icon">📷</span>
-            <span class="text">VIGIAR</span>
-        </button>
+        <!-- Formulário de Envio para Análise do Gemini -->
+        <form id="gemini-form" class="card" style="margin: 15px 0;">
+            <label for="prompt-input" style="display:block; font-weight:bold; margin-bottom: 5px;">
+                Descreva ou observe o pet:
+            </label>
+            <textarea 
+                id="prompt-input" 
+                placeholder="Ex: O pet está agitado, latindo para a porta..." 
+                rows="3" 
+                style="width: 100%; box-sizing: border-box; padding: 8px;"
+                required
+            ></textarea>
+
+            <label for="media-input" style="display:block; font-weight:bold; margin: 10px 0 5px;">
+                Anexar foto/vídeo (Opcional):
+            </label>
+            <input type="file" id="media-input" accept="image/*,video/*" style="margin-bottom: 10px;">
+
+            <!-- Botão VIGIAR (Grande) / Submeter para IA -->
+            <button id="vigiarBtn" type="submit" class="vigiar-btn">
+                <span class="icon">📷</span>
+                <span id="btn-text" class="text">VIGIAR / ANALISAR</span>
+            </button>
+        </form>
 
         <!-- Estatísticas -->
         <div class="stats">
@@ -52,7 +71,7 @@
             </div>
         </div>
 
-        <!-- Respostas da IA (Lista de 3 itens) -->
+        <!-- Respostas da IA (Lista de Dicas) -->
         <div class="ia-respostas">
             <h3>🤖 Dicas da IA</h3>
             <ul id="iaList">
@@ -62,13 +81,20 @@
             </ul>
         </div>
 
+        <!-- Opcional: Bloco para exibir o texto completo retornado pelo Gemini -->
+        <div id="result-container" class="card hidden" style="margin-top: 15px;">
+            <h3>Análise Detalhada</h3>
+            <div id="result-content" class="result-text" style="white-space: pre-wrap; margin-top: 10px;"></div>
+        </div>
+
         <!-- Botões Inferiores -->
-        <div class="bottom-actions">
+        <div class="bottom-actions" style="margin-top: 15px;">
             <button id="historyBtn" class="action-btn">📊 Histórico</button>
             <button id="exportBtn" class="action-btn primary">📤 Enviar</button>
         </div>
     </div>
 
+    <!-- Script principal importado como módulo JS -->
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
