@@ -1,9 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Obtém a chave de variável de ambiente (Vite/Netlify/Runtime) ou da janela global
+// Obtém a chave de variável de ambiente ou usa a chave local para testes
 const API_KEY = (typeof process !== "undefined" && process.env && process.env.GEMINI_API_KEY)
   || (typeof window !== "undefined" && window.GEMINI_API_KEY)
-  || "";
+  || "AQ.Ab8RN6IRn7v13rdP0DEDF6AsOnjqN9qkArlc-IDB9HxCqxG81w";
 
 // Inicializa o SDK do Gemini
 const ai = new GoogleGenAI({ apiKey: API_KEY });
