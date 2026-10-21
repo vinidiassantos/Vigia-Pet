@@ -1,29 +1,15 @@
-import { GoogleGenAI } from "@google/genai";
-
-// Obtém a chave da variável de ambiente ou da janela global (sem expor no código)
-const API_KEY = (typeof process !== "undefined" && process.env && process.env.GEMINI_API_KEY)
-  || (typeof window !== "undefined" && window.GEMINI_API_KEY)
-  || "";
-
-// Inicializa o SDK do Gemini
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// Chave da API configurada para o Vigia Pet
+const API_KEY = "AQ.Ab8RN6LqIS9EwrpeeRUVN3WpCsJJVvIQpFbgRenhLxmNIYhvpQ";
 
 /**
- * Converte um ficheiro (imagem/vídeo) para o formato base64 necessário para a API do Gemini.
- * @param {File} file 
- * @returns {Promise<{inlineData: {data: string, mimeType: string}}>} 
+ * Converte o ficheiro de imagem da câmara para Base64
  */
-async function fileToGenerativePart(file) {
+async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64Data = reader.result.split(',')[1];
-      resolve({
-        inlineData: {
-          data: base64Data,
-          mimeType: file.type
-        }
-      });
+      resolve(base64Data);
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
@@ -31,33 +17,87 @@ async function fileToGenerativePart(file) {
 }
 
 /**
- * Envia o relato de texto e/ou a mídia (imagem/vídeo) para o Gemini gerar uma análise comportamental.
- * @param {string} promptTexto - A descrição do comportamento do pet.
- * @param {File|null} mediaFile - Ficheiro de imagem ou vídeo (opcional).
- * @returns {Promise<string>} - Resposta em texto gerada pelo Gemini.
+ * Busca dinamicamente os modelos disponíveis ou aplica o modelo padrão ativo (gemini-3.8-flash)
+ */
+async function obterModeloValido() {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+    const data = await res.json();
+    
+    if (data.models && data.models.length > 0) {
+      const modeloCompativel = data.models.find(m => 
+        m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
+      );
+      if (modeloCompativel) {
+        return modeloCompativel.name.replace("models/", "");
+      }
+    }
+  } catch (e) {
+    console.warn("Não foi possível listar os modelos dinamicamente, utilizando padrão:", e);
+  }
+  
+  // Modelo exigido pelo endpoint da Google para chaves ativas no AI Studio
+  return "gemini-3.8-flash";
+}
+
+/**
+ * Envia o frame da câmara para a API REST do Gemini
  */
 export async function analisarComportamentoPet(promptTexto, mediaFile = null) {
+  if (!API_KEY) {
+    alert("❌ Chave da API do Gemini ausente.");
+    throw new Error("Chave da API do Gemini ausente.");
+  }
+
+  let base64Data = null;
+  if (mediaFile) {
+    base64Data = await fileToBase64(mediaFile);
+  }
+
+  const promptSistema = `Você é um assistente veterinário especialista em comportamento animal do aplicativo Vigia Pet. 
+  Analise a imagem recebida da câmara e forneça um diagnóstico amigável, direto e com 3 recomendações práticas rápidas.`;
+
+  const parts = [{ text: `${promptSistema}\n\n${promptTexto}` }];
+  if (base64Data) {
+    parts.push({
+      inline_data: {
+        mime_type: "image/jpeg",
+        data: base64Data
+      }
+    });
+  }
+
   try {
-    const model = "gemini-2.5-flash"; // Modelo recomendado para texto e visão computacional
-    
-    const promptSistema = `Você é um assistente veterinário especialista em comportamento animal do aplicativo Vigia Pet. 
-    Analise o comportamento do pet enviado e forneça um diagnóstico amigável, direto e com recomendações práticas (alimentação, descanso, exercícios ou atenção médica).`;
+    const nomeModelo = await obterModeloValido();
+    console.log(`🤖 Modelo selecionado para requisição: ${nomeModelo}`);
 
-    const contents = [promptSistema, promptTexto];
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${nomeModelo}:generateContent?key=${API_KEY}`;
 
-    if (mediaFile) {
-      const imageOrVideoPart = await fileToGenerativePart(mediaFile);
-      contents.push(imageOrVideoPart);
-    }
-
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: contents,
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{ parts: parts }]
+      })
     });
 
-    return response.text;
+    const data = await response.json();
+
+    if (response.ok) {
+      const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (textResult) {
+        return textResult;
+      }
+    }
+
+    console.error("❌ Erro retornado pela API do Google:", data);
+    alert(`Erro no Google AI (${response.status}): ${data.error?.message || 'Falha na resposta'}`);
+    throw new Error(`Erro ${response.status}`);
+
   } catch (error) {
-    console.error("Erro ao comunicar com o Gemini AI:", error);
-    throw new Error("Não foi possível gerar a análise do pet no momento.");
+    console.error("❌ Falha na análise:", error);
+    throw error;
   }
 }
