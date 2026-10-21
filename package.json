@@ -9,7 +9,7 @@
     "fix": "scripts/fix_structure.bat"
   },
   "dependencies": {
-    "@google/genai": "^0.1.1",
+    "@google/generative-ai": "^0.24.1",
     "firebase": "^10.7.1"
   },
   "devDependencies": {
