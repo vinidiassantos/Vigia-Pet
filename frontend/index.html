@@ -6,6 +6,15 @@
     <title>VIGIA PET</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
+
+    <!-- Import Map para ensinar o navegador a carregar o @google/genai direto do CDN -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.run/@google/genai"
+        }
+      }
+    </script>
 </head>
 <body>
     <div id="app">
@@ -21,7 +30,7 @@
         <!-- Área da Câmera -->
         <div class="camera-area" id="cameraArea">
             <video id="video" autoplay playsinline></video>
-            <!-- Canvas invisível para captura do frame da imagem da câmera -->
+            <!-- Canvas invisível para captura do frame da imagem da câmara -->
             <canvas id="canvas" style="display: none;"></canvas>
             <div class="overlay" id="behaviorOverlay">
                 <span class="behavior-icon" id="behaviorIcon">🔍</span>
@@ -29,7 +38,7 @@
             </div>
         </div>
 
-        <!-- Botão VIGIAR (Ação Direta da Câmera) -->
+        <!-- Botão VIGIAR -->
         <div style="margin: 20px 0; text-align: center;">
             <button id="vigiarBtn" class="vigiar-btn" type="button" style="width: 100%;">
                 <span class="icon">📷</span>
@@ -56,7 +65,7 @@
             </div>
         </div>
 
-        <!-- Respostas da IA (Dicas em destaque) -->
+        <!-- Dicas da IA -->
         <div class="ia-respostas">
             <h3>🤖 Dicas da IA</h3>
             <ul id="iaList">
@@ -66,7 +75,7 @@
             </ul>
         </div>
 
-        <!-- Bloco para exibir o diagnóstico detalhado retornado pelo Gemini -->
+        <!-- Bloco para exibir o diagnóstico detalhado -->
         <div id="result-container" class="card hidden" style="margin-top: 15px;">
             <h3>Análise Detalhada</h3>
             <div id="result-content" class="result-text" style="white-space: pre-wrap; margin-top: 10px;"></div>
