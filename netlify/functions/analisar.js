@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 exports.handler = async (event) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -16,14 +18,14 @@ exports.handler = async (event) => {
   try {
     const { imageBase64, promptText } = JSON.parse(event.body || "{}");
 
-    // Lê da variável de ambiente do Netlify ou usa a chave da Groq diretamente
-    const apiKey = process.env.GROQ_API_KEY || "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";
+    // Agora o process.env será preenchido pelo dotenv localmente
+    const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: "Variável GROQ_API_KEY não encontrada." })
+        body: JSON.stringify({ error: "Variável GROQ_API_KEY não encontrada no servidor." })
       };
     }
 
@@ -46,7 +48,6 @@ exports.handler = async (event) => {
       });
     }
 
-    // Modelo atualizado para visão na Groq: llama-3.2-90b-vision-preview
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
