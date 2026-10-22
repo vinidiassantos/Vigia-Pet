@@ -9,3 +9,6 @@ scripts/
 *.env
 backend/functions/.env
 firebase-debug.log
+
+# Local Netlify folder
+.netlify
