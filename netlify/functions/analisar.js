@@ -16,7 +16,6 @@ exports.handler = async (event) => {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
 
-    // PROMPT OTIMIZADO COM EXEMPLOS (FEW-SHOT PROMPTING)
     const promptSistema = `Você é um assistente veterinário especialista em comportamento animal do aplicativo Vigia Pet.
     
     Sua tarefa é analisar a imagem de um pet e classificá-lo em uma das 3 categorias.
@@ -51,7 +50,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: "qwen/qwen3.8-27b",
         messages: [{ role: "user", content: content }],
-        temperature: 0.1 // Temperatura baixa para ser mais preciso e menos "criativo"
+        temperature: 0.1
       })
     });
 

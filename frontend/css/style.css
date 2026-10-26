@@ -38,6 +38,7 @@ body {
     overflow-y: auto;
 }
 
+/* HEADER */
 header {
     display: flex;
     justify-content: space-between;
@@ -84,6 +85,7 @@ header {
 }
 @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
+/* CÂMERA */
 .camera-area {
     flex: 1; min-height: 260px; max-height: 420px; background: #000;
     border-radius: 24px; overflow: hidden; position: relative; margin-bottom: 24px;
@@ -108,6 +110,7 @@ header {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
+/* BOTÕES */
 .btn-primary {
     width: 100%; padding: 18px; background: var(--accent-color); color: #FFFFFF;
     border: none; border-radius: 16px; font-size: 18px; font-weight: 800; 
@@ -115,6 +118,7 @@ header {
     box-shadow: var(--shadow-btn);
 }
 .btn-primary:hover { background: var(--accent-dark); transform: translateY(-2px); }
+.btn-primary:active { transform: scale(0.98); }
 
 .controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
 
@@ -124,9 +128,12 @@ header {
     background: var(--card-bg); color: var(--text-main); box-shadow: var(--shadow-soft);
 }
 .btn-secondary:hover { border-color: var(--primary-color); }
+.btn-secondary:active { background: var(--bg-color); }
 
 .btn-whatsapp { color: var(--accent-color); border-color: rgba(249, 115, 22, 0.3); }
+.btn-whatsapp:hover { border-color: var(--accent-color); background: rgba(249, 115, 22, 0.05); }
 
+/* ESTATÍSTICAS */
 .stats { 
     display: grid; 
     grid-template-columns: repeat(3, 1fr); 
@@ -141,6 +148,7 @@ header {
 .stat-label { font-size: 10px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px; margin-bottom: 4px; }
 .stat-value { font-size: 22px; font-weight: 800; color: var(--primary-color); }
 
+/* RELATÓRIO DA IA */
 .ia-respostas {
     background: #FFFDFB;
     border: 2px solid var(--accent-color);
@@ -161,6 +169,7 @@ header {
     background: rgba(249, 115, 22, 0.1); color: var(--accent-dark);
 }
 .ia-badge.sleep { background: rgba(15, 23, 42, 0.1); color: var(--primary-color); }
+.ia-badge.eat { background: rgba(249, 115, 22, 0.1); color: var(--accent-dark); }
 .ia-badge.active { background: rgba(59, 130, 246, 0.15); color: #2563EB; }
 
 .ia-respostas ul { list-style: none; padding: 0; margin: 0; }
@@ -174,7 +183,7 @@ header {
 .ia-item.placeholder { color: var(--text-muted); font-style: italic; border: none; }
 
 /* ============================================
-   NOVO: FEEDBACK DA IA
+   FEEDBACK DO CLIENTE
    ============================================ */
 .feedback-container {
     background: var(--card-bg);
@@ -197,18 +206,18 @@ header {
     gap: 12px;
 }
 .btn-feedback {
-    padding: 10px 20px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-color);
-    border-radius: 10px;
+    padding: 10px 24px;
+    border: 2px solid var(--border-color);
+    background: var(--card-bg);
+    border-radius: 12px;
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
+    color: var(--text-main);
 }
-.btn-feedback:hover { background: #EDF2F7; }
-.btn-feedback.correct:hover { border-color: #10B981; color: #10B981; background: rgba(16, 185, 129, 0.05); }
-.btn-feedback.incorrect:hover { border-color: #EF4444; color: #EF4444; background: rgba(239, 68, 68, 0.05); }
+.btn-feedback:hover { background: #F8FAFC; border-color: var(--primary-color); }
+.btn-feedback:active { transform: scale(0.95); }
 
 .feedback-comment-box {
     display: flex;
@@ -240,9 +249,7 @@ header {
     color: #10B981;
 }
 
-/* ============================================
-   AÇÕES INFERIORES E MODAL
-   ============================================ */
+/* AÇÕES INFERIORES E MODAL */
 .bottom-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: auto; padding-bottom: 10px; }
 
 .modal {

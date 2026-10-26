@@ -14,6 +14,7 @@
 </head>
 <body>
     <div id="app">
+        <!-- Header -->
         <header>
             <div class="logo">
                 <span class="logo-text">VIGIA PE</span>
@@ -29,6 +30,7 @@
             </div>
         </header>
 
+        <!-- Área da Câmera -->
         <div class="camera-area active" id="cameraArea">
             <video id="video" autoplay playsinline muted></video>
             <div class="timer-overlay" id="timerOverlay" style="display: none;">
@@ -39,13 +41,16 @@
             </div>
         </div>
 
+        <!-- Botão Principal -->
         <button id="vigiarBtn" class="btn-primary">VIGIAR</button>
 
+        <!-- Controles de Gravação -->
         <div class="controls-row" id="controlsRow" style="display: none;">
             <button id="pauseBtn" class="btn-secondary">PAUSAR</button>
             <button id="stopBtn" class="btn-secondary">ENCERRAR</button>
         </div>
 
+        <!-- Blocos de Estatísticas (Lado a Lado) -->
         <div class="stats" id="statsContainer">
             <div class="stat-card">
                 <span class="stat-label">DESCANSO</span>
@@ -72,12 +77,12 @@
             </ul>
         </div>
 
-        <!-- NOVO: Feedback da IA -->
+        <!-- Bloco de Feedback do Cliente -->
         <div class="feedback-container" id="feedbackContainer" style="display: none;">
             <p class="feedback-title">A IA acertou o comportamento do seu pet?</p>
             <div class="feedback-buttons" id="feedbackButtons">
-                <button id="btnCorrect" class="btn-feedback correct">👍 Sim</button>
-                <button id="btnIncorrect" class="btn-feedback incorrect">👎 Não</button>
+                <button id="btnThumbsUp" class="btn-feedback">👍 Sim</button>
+                <button id="btnThumbsDown" class="btn-feedback">👎 Não</button>
             </div>
             
             <div class="feedback-comment-box" id="feedbackCommentBox" style="display: none;">
@@ -88,11 +93,13 @@
             <p class="feedback-thanks" id="feedbackThanks" style="display: none;">Obrigado pelo seu feedback! 🐾</p>
         </div>
 
+        <!-- Ações Inferiores -->
         <div class="bottom-actions">
             <button id="historyBtn" class="btn-secondary">HISTÓRICO</button>
             <button id="whatsappBtn" class="btn-secondary btn-whatsapp">COMPARTILHAR</button>
         </div>
 
+        <!-- Modal de Histórico -->
         <div id="historyModal" class="modal" style="display: none;">
             <div class="modal-content">
                 <span class="close-modal" id="closeModal">&times;</span>
