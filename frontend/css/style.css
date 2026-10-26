@@ -1,36 +1,30 @@
 /* ============================================
-   RESET E BASE
+   RESET E BASE (Modo Escuro Acolhedor)
    ============================================ */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #0a0e17;
-    color: #ffffff;
+    background: #0f172a; /* Deep charcoal em vez de preto puro */
+    color: #f1f5f9;
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow-y: auto; /* Permite rolagem na página */
+    overflow-y: auto;
 }
 
 #app {
     width: 100%;
     max-width: 480px;
-    min-height: 100vh; /* Mudou de height para min-height */
-    max-height: none; /* Remove o limite de 900px para telas maiores */
-    background: linear-gradient(145deg, #0f1923 0%, #1a2a3a 100%);
-    border-radius: 32px;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
     padding: 20px;
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 60px rgba(0,0,0,0.8);
     position: relative;
-    overflow-y: auto; /* Permite rolagem interna */
+    overflow-y: auto;
 }
 
 /* ============================================
@@ -40,320 +34,145 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     flex-shrink: 0;
 }
 
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.logo-icon {
-    font-size: 28px;
-}
-
-.logo-text {
-    font-size: 22px;
-    font-weight: 800;
-    color: #4fc3f7;
-    letter-spacing: -0.5px;
-    text-shadow: 0 0 20px rgba(79, 195, 247, 0.2);
-}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-icon { font-size: 26px; }
+.logo-text { font-size: 20px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px; }
 
 .status {
-    font-size: 12px;
-    color: #4caf50;
-    background: rgba(76, 175, 80, 0.15);
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1px solid rgba(76, 175, 80, 0.3);
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #4ade80; background: rgba(74, 222, 128, 0.1);
+    padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(74, 222, 128, 0.2);
 }
+.status-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; animation: pulse-green 2s infinite; }
+@keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 /* ============================================
    CÂMERA
    ============================================ */
 .camera-area {
-    flex: 1;
-    min-height: 250px; /* Aumentado para não achatar a câmera */
-    max-height: 400px; /* Limita a altura da câmera para sobrar espaço para o texto */
-    background: #0a0e17;
-    border-radius: 20px;
-    overflow: hidden;
-    position: relative;
-    margin-bottom: 16px;
-    border: 2px solid rgba(79, 195, 247, 0.15);
-    display: none;
+    flex: 1; min-height: 260px; max-height: 420px; background: #000;
+    border-radius: 24px; overflow: hidden; position: relative; margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.08); display: none;
 }
-
-.camera-area.active {
-    display: block;
-}
-
-.camera-area video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+.camera-area.active { display: block; }
+.camera-area video { width: 100%; height: 100%; object-fit: cover; }
 
 .overlay {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(10px);
-    padding: 10px 22px;
-    border-radius: 30px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border: 1px solid rgba(255,255,255,0.08);
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
+    padding: 10px 24px; border-radius: 30px; display: flex; align-items: center;
+    gap: 12px; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
 }
+.behavior-icon { font-size: 24px; }
+.behavior-text { font-size: 15px; font-weight: 600; color: #f1f5f9; }
 
-.behavior-icon {
-    font-size: 26px;
+/* Timer */
+.timer-overlay {
+    position: absolute; top: 20px; left: 20px;
+    display: flex; align-items: center; gap: 8px; z-index: 10;
 }
-
-.behavior-text {
-    font-size: 16px;
-    font-weight: 600;
-    color: #fff;
+.timer-ring {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: rgba(0,0,0,0.6); border: 3px solid #ef4444;
+    display: flex; justify-content: center; align-items: center;
+    font-family: monospace; font-size: 18px; font-weight: bold; color: #fff;
 }
+.rec-label { font-size: 12px; font-weight: bold; color: #ef4444; letter-spacing: 1px; }
 
 /* ============================================
-   BOTÃO VIGIAR (GRANDE)
+   BOTÕES
    ============================================ */
 .vigiar-btn {
-    width: 100%;
-    padding: 18px;
-    background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
-    color: white;
-    border: none;
-    border-radius: 16px;
-    font-size: 20px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    flex-shrink: 0;
-    box-shadow: 0 6px 30px rgba(79, 195, 247, 0.25);
-    letter-spacing: 1px;
-    position: relative;
+    width: 100%; padding: 18px; background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+    color: white; border: none; border-radius: 18px; font-size: 18px;
+    font-weight: 700; cursor: pointer; transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 16px; flex-shrink: 0; box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
 }
+.vigiar-btn:active { transform: scale(0.97); }
 
-.vigiar-btn:active {
-    transform: scale(0.96);
-}
-
-.vigiar-btn .icon {
-    font-size: 28px;
-}
-
-.vigiar-btn.vigilando {
-    background: linear-gradient(135deg, #ff5252 0%, #d32f2f 100%);
-    box-shadow: 0 6px 30px rgba(255, 82, 82, 0.3);
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { box-shadow: 0 6px 30px rgba(255, 82, 82, 0.3); }
-    50% { box-shadow: 0 6px 50px rgba(255, 82, 82, 0.6); }
-    100% { box-shadow: 0 6px 30px rgba(255, 82, 82, 0.3); }
-}
-
-/* ============================================
-   ESTATÍSTICAS
-   ============================================ */
-.stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-shrink: 0;
-}
-
-.stat-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px;
-    padding: 12px 8px;
-    text-align: center;
-    transition: all 0.3s;
-}
-
-.stat-card:hover {
-    background: rgba(255,255,255,0.08);
-}
-
-.stat-icon {
-    display: block;
-    font-size: 22px;
-    margin-bottom: 2px;
-}
-
-.stat-label {
-    display: block;
-    font-size: 11px;
-    color: #78909c;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.stat-value {
-    display: block;
-    font-size: 18px;
-    font-weight: 700;
-    color: #e0e0e0;
-    margin-top: 2px;
-}
-
-/* ============================================
-   IA RESPOSTAS (LISTA)
-   ============================================ */
-.ia-respostas {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px;
-    padding: 14px 16px;
-    margin-bottom: 14px;
-    flex-shrink: 1; /* Permite encolher se necessário */
-    min-height: 100px;
-    max-height: 250px; /* Limite máximo para caber na tela */
-    overflow-y: auto; /* Adiciona barra de rolagem própria para o texto da IA */
-}
-
-.ia-respostas h3 {
-    font-size: 13px;
-    color: #4fc3f7;
-    margin-bottom: 10px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.ia-respostas ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.ia-item {
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    font-size: 13px;
-    color: #b0bec5;
-    display: flex;
-    align-items: flex-start; /* Alinha o texto ao topo */
-    gap: 8px;
-    line-height: 1.4;
-    word-break: break-word; /* Força quebra de palavras longas */
-    white-space: pre-wrap; /* Mantém as quebras de linha da IA */
-}
-
-.ia-item:last-child {
-    border-bottom: none;
-}
-
-.ia-item .bullet {
-    color: #4fc3f7;
-    font-weight: 700;
-}
-
-.ia-item.loading {
-    color: #78909c;
-    animation: blink 1s infinite;
-}
-
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-
-/* ============================================
-   BOTÕES INFERIORES
-   ============================================ */
-.bottom-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    flex-shrink: 0;
-    margin-top: auto; /* Empurra os botões para o final se houver espaço sobrando */
-    padding-bottom: 10px;
-}
+.controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
 
 .action-btn {
-    padding: 14px;
-    border: none;
-    border-radius: 14px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: rgba(255,255,255,0.06);
-    color: #b0bec5;
-    border: 1px solid rgba(255,255,255,0.06);
+    padding: 14px; border: none; border-radius: 14px; font-size: 14px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+    background: rgba(255,255,255,0.05); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.08);
 }
-
-.action-btn:active {
-    transform: scale(0.96);
-}
-
-.action-btn.primary {
-    background: linear-gradient(135deg, #4fc3f7 0%, #0288d1 100%);
-    color: #fff;
-    border: none;
-    box-shadow: 0 4px 20px rgba(79, 195, 247, 0.2);
-}
-
-.action-btn.primary:hover {
-    box-shadow: 0 4px 30px rgba(79, 195, 247, 0.35);
-}
+.action-btn:active { transform: scale(0.97); }
+.action-btn.pause { background: rgba(250, 204, 21, 0.15); color: #facc15; border-color: rgba(250, 204, 21, 0.3); }
+.action-btn.stop { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.3); }
+.action-btn.primary { background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%); color: #fff; border: none; }
 
 /* ============================================
-   RESPONSIVO
+   ESTATÍSTICAS COM BARRAS
    ============================================ */
-@media (max-width: 480px) {
-    #app {
-        border-radius: 0;
-        min-height: 100vh;
-        padding: 16px;
-    }
-    
-    .logo-text {
-        font-size: 18px;
-    }
-    
-    .vigiar-btn {
-        font-size: 18px;
-        padding: 16px;
-    }
-    
-    .stat-value {
-        font-size: 16px;
-    }
+.stats { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; flex-shrink: 0; }
+.stat-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 14px 16px;
 }
+.stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.stat-icon { font-size: 20px; }
+.stat-label { font-size: 13px; color: #94a3b8; font-weight: 500; flex: 1; margin-left: 10px; }
+.stat-value { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+
+.progress-bar { height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.progress-fill.sleep { background: #38bdf8; }
+.progress-fill.eat { background: #4ade80; }
+.progress-fill.active { background: #fb923c; }
 
 /* ============================================
-   SCROLLBAR PERSONALIZADA
+   DICAS DA IA
    ============================================ */
-::-webkit-scrollbar {
-    width: 6px;
+.ia-respostas {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 18px; padding: 16px; margin-bottom: 20px;
+    min-height: 120px; max-height: 260px; overflow-y: auto;
+}
+.ia-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.ia-respostas h3 { font-size: 13px; color: #38bdf8; font-weight: 600; }
+.ia-badge {
+    font-size: 10px; padding: 4px 10px; border-radius: 12px;
+    background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 600;
+}
+.ia-respostas ul { list-style: none; padding: 0; margin: 0; }
+.ia-item {
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-size: 13px; color: #cbd5e1; display: flex; align-items: flex-start;
+    gap: 8px; line-height: 1.5; word-break: break-word; white-space: pre-wrap;
+}
+.ia-item:last-child { border-bottom: none; }
+.ia-item.placeholder { color: #64748b; font-style: italic; }
+
+/* ============================================
+   AÇÕES INFERIORES E MODAL
+   ============================================ */
+.bottom-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: auto; padding-bottom: 10px; }
+
+.modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center;
+    align-items: center; z-index: 1000;
+}
+.modal-content {
+    background: #1e293b; padding: 24px; border-radius: 20px; width: 90%;
+    max-width: 400px; max-height: 80vh; overflow-y: auto;
+    position: relative; border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.close-modal { position: absolute; top: 16px; right: 20px; font-size: 24px; cursor: pointer; color: #94a3b8; }
+#historyList { list-style: none; margin-top: 16px; }
+#historyList li {
+    background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 12px;
+    margin-bottom: 10px; font-size: 13px; border-left: 3px solid #38bdf8;
+    color: #cbd5e1;
 }
 
-::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.05);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #4fc3f7;
-    border-radius: 4px;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }

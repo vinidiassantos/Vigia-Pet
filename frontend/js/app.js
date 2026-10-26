@@ -1,150 +1,226 @@
-import { db, collection, addDoc, serverTimestamp } from './firebase-config.js';
-import { analisarComportamentoPet } from './gemini-service.js';
+// frontend/js/app.js
 
-// Elementos
-const vigiarBtn = document.getElementById('vigiarBtn');
-const btnText = document.getElementById('btn-text');
-const statusText = document.getElementById('connectionStatus');
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
-const cameraArea = document.getElementById('cameraArea');
-const behaviorIcon = document.getElementById('behaviorIcon');
+const vigiarBtn = document.getElementById('vigiarBtn');
+const btnText = document.getElementById('btn-text');
+const pauseBtn = document.getElementById('pauseBtn');
+const stopBtn = document.getElementById('stopBtn');
+const controlsRow = document.getElementById('controlsRow');
+const timerOverlay = document.getElementById('timerOverlay');
+const timerDisplay = document.getElementById('timerDisplay');
 const behaviorText = document.getElementById('behaviorText');
+const behaviorIcon = document.getElementById('behaviorIcon');
 const iaList = document.getElementById('iaList');
-const resultContainer = document.getElementById('result-container');
-const resultContent = document.getElementById('result-content');
+const iaCategoryBadge = document.getElementById('iaCategoryBadge');
+const historyBtn = document.getElementById('historyBtn');
+const whatsappBtn = document.getElementById('whatsappBtn');
+const historyModal = document.getElementById('historyModal');
+const closeModal = document.getElementById('closeModal');
+const historyList = document.getElementById('historyList');
 
 let stream = null;
-let isAnalysing = false;
-let stats = { dormindo: 0, comendo: 0, agitado: 0 };
+let isRecording = false;
+let isPaused = false;
+let timeLeft = 30;
+let timerInterval = null;
+let lastAIResult = "";
 
-// 1. Liga a câmera automaticamente ao carregar
-async function iniciarCamera() {
+// Estatísticas (segundos) persistidas
+let stats = JSON.parse(localStorage.getItem('vigiapet_stats')) || { descanco: 0, alimentacao: 0, atividade: 0 };
+
+// ==========================================
+// CÂMERA
+// ==========================================
+async function initCamera() {
     try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
-        });
-        if (video) {
-            video.srcObject = stream;
-            await video.play();
-        }
-        if (cameraArea) cameraArea.classList.add('active');
-    } catch (error) {
-        console.error('Erro ao acessar a câmera:', error);
-        alert('❌ Por favor, permita o acesso à câmera para o Vigia Pet funcionar.');
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = stream;
+    } catch (err) {
+        console.error("Erro na câmera:", err);
+        alert("Permita o acesso à câmera para usar o Vigia Pet.");
     }
 }
 
-// 2. Captura um frame da câmera e transforma em arquivo de imagem
-function capturarFrame() {
-    if (!video || video.readyState !== 4) return null;
+// ==========================================
+// ATUALIZAR UI DAS ESTATÍSTICAS
+// ==========================================
+function updateStatsUI() {
+    const total = stats.descanco + stats.alimentacao + stats.atividade || 1;
+    
+    document.getElementById('sleepTime').textContent = `${Math.floor(stats.descanco / 60)}m`;
+    document.getElementById('eatTime').textContent = `${Math.floor(stats.alimentacao / 60)}m`;
+    document.getElementById('activeTime').textContent = `${Math.floor(stats.atividade / 60)}m`;
+
+    document.getElementById('sleepBar').style.width = `${(stats.descanco / total) * 100}%`;
+    document.getElementById('eatBar').style.width = `${(stats.alimentacao / total) * 100}%`;
+    document.getElementById('activeBar').style.width = `${(stats.atividade / total) * 100}%`;
+
+    localStorage.setItem('vigiapet_stats', JSON.stringify(stats));
+}
+
+// ==========================================
+// CONTROLE DE GRAVAÇÃO
+// ==========================================
+vigiarBtn.addEventListener('click', () => {
+    if (!stream) { alert("A câmera ainda não está pronta."); return; }
+
+    isRecording = true;
+    isPaused = false;
+    timeLeft = 30;
+
+    vigiarBtn.style.display = 'none';
+    controlsRow.style.display = 'grid';
+    timerOverlay.style.display = 'flex';
+    behaviorText.textContent = "Gravando...";
+    behaviorIcon.textContent = "🔴";
+    iaList.innerHTML = '<li class="ia-item placeholder">💡 Capturando imagem...</li>';
+    iaCategoryBadge.style.display = 'none';
+    updateTimerDisplay();
+
+    timerInterval = setInterval(() => {
+        if (!isPaused) {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) finalizarGravacao();
+        }
+    }, 1000);
+});
+
+pauseBtn.addEventListener('click', () => {
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? "▶ Retomar" : "⏸ Pausar";
+    behaviorText.textContent = isPaused ? "Pausado" : "Gravando...";
+});
+
+stopBtn.addEventListener('click', finalizarGravacao);
+
+function updateTimerDisplay() {
+    timerDisplay.textContent = timeLeft;
+}
+
+// ==========================================
+// FINALIZAR E ENVIAR PARA IA
+// ==========================================
+async function finalizarGravacao() {
+    clearInterval(timerInterval);
+    isRecording = false;
+    
+    const tempoGravado = 30 - timeLeft;
+
+    controlsRow.style.display = 'none';
+    timerOverlay.style.display = 'none';
+    behaviorText.textContent = "IA Analisando...";
+    behaviorIcon.textContent = "🧠";
 
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Converte a imagem do canvas para DataURL (Base64)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-    
-    // Converte DataURL para File para enviar ao serviço do Gemini
-    const arr = dataUrl.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], "frame_pet.jpg", { type: mime });
-}
-
-// 3. Ação do Botão: Captura imagem da câmera e envia para a IA
-async function executarAnaliseVisivel() {
-    if (isAnalysing) return;
-    
-    if (!stream) {
-        await iniciarCamera();
-    }
-
-    const imagemCapturada = capturarFrame();
-    if (!imagemCapturada) {
-        alert("Aguarde a câmera carregar antes de analisar.");
-        return;
-    }
-
-    isAnalysing = true;
-    if (vigiarBtn) vigiarBtn.disabled = true;
-    if (btnText) btnText.textContent = "ANALISANDO VÍDEO...";
-    if (behaviorText) behaviorText.textContent = "IA Analisando imagem...";
-    if (behaviorIcon) behaviorIcon.textContent = "🧠";
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
 
     try {
-        const promptVisao = "Analise o comportamento do pet presente nesta imagem da câmera. Identifique se ele está descansando, comendo, brincando ou agitado e forneça diagnósticos práticos.";
-        
-        // Chamada direta para o Gemini com a foto capturada da vídeo-chamada
-        const respostaAI = await analisarComportamentoPet(promptVisao, imagemCapturada);
-        
-        atualizarInterfaceIA(respostaAI);
-        
-        // Salva registro no Firebase
-        salvarComportamento("analise_camera");
-        
-    } catch (error) {
-        console.error("Erro na análise da imagem:", error);
-        if (behaviorText) behaviorText.textContent = "Erro ao analisar";
-    } finally {
-        isAnalysing = false;
-        if (vigiarBtn) vigiarBtn.disabled = false;
-        if (btnText) btnText.textContent = "VIGIAR / ANALISAR";
-    }
-}
-
-// 4. Atualiza a interface com a resposta da IA
-function atualizarInterfaceIA(textoAnalisado) {
-    if (resultContent) resultContent.innerText = textoAnalisado;
-    if (resultContainer) resultContainer.classList.remove('hidden');
-
-    if (iaList) {
-        const linhas = textoAnalisado
-            .split('\n')
-            .map(l => l.trim())
-            .filter(l => l.length > 0)
-            .slice(0, 3);
-
-        if (linhas.length > 0) {
-            iaList.innerHTML = '';
-            linhas.forEach(linha => {
-                const li = document.createElement('li');
-                li.className = 'ia-item';
-                li.innerHTML = `💡 ${linha.replace(/^[*•-]\s*/, '')}`;
-                iaList.appendChild(li);
-            });
-        }
-    }
-
-    if (behaviorIcon) behaviorIcon.textContent = "✅";
-    if (behaviorText) behaviorText.textContent = "Análise Concluída";
-}
-
-// Salva no Firebase
-async function salvarComportamento(tipo) {
-    try {
-        await addDoc(collection(db, 'behaviors'), {
-            petId: 'pet-padrao',
-            behavior: tipo,
-            timestamp: serverTimestamp(),
-            device: navigator.userAgent || 'desconhecido'
+        const response = await fetch('/.netlify/functions/analisar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64Image })
         });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Erro desconhecido");
+
+        lastAIResult = data.result;
+        processarRespostaIA(data.result, tempoGravado);
+
     } catch (error) {
-        console.error('❌ Erro ao salvar no Firebase:', error);
+        console.error("Erro na análise:", error);
+        alert("Erro ao analisar: " + error.message);
+        behaviorText.textContent = "Erro";
+        behaviorIcon.textContent = "❌";
+    } finally {
+        vigiarBtn.style.display = 'flex';
     }
 }
 
-// Eventos
-if (vigiarBtn) {
-    vigiarBtn.addEventListener('click', executarAnaliseVisivel);
+// ==========================================
+// PROCESSAR RESPOSTA DA IA
+// ==========================================
+function processarRespostaIA(texto, segundos) {
+    let categoria = "atividade";
+    let badgeText = "Atividade";
+    let badgeColor = "#fb923c";
+
+    if (texto.includes("[CATEGORIA: DESCANSO]")) { categoria = "descanco"; badgeText = "Descanso"; badgeColor = "#38bdf8"; }
+    else if (texto.includes("[CATEGORIA: ALIMENTACAO]")) { categoria = "alimentacao"; badgeText = "Alimentação"; badgeColor = "#4ade80"; }
+
+    stats[categoria] += segundos;
+    updateStatsUI();
+
+    const textoLimpo = texto.replace(/\[CATEGORIA:.*?\]/g, '').trim();
+    
+    behaviorText.textContent = "Análise Concluída";
+    behaviorIcon.textContent = "✅";
+    
+    iaCategoryBadge.style.display = 'inline-block';
+    iaCategoryBadge.textContent = badgeText;
+    iaCategoryBadge.style.color = badgeColor;
+    iaCategoryBadge.style.background = `${badgeColor}20`;
+
+    iaList.innerHTML = '';
+    const paragrafos = textoLimpo.split('\n').filter(p => p.trim() !== '');
+    paragrafos.forEach(p => {
+        const li = document.createElement('li');
+        li.className = 'ia-item';
+        li.textContent = `💡 ${p}`;
+        iaList.appendChild(li);
+    });
+
+    salvarHistorico(textoLimpo, categoria, segundos);
 }
 
-// Inicializa a câmera automaticamente ao carregar
-document.addEventListener('DOMContentLoaded', iniciarCamera);
+// ==========================================
+// WHATSAPP
+// ==========================================
+whatsappBtn.addEventListener('click', () => {
+    if (!lastAIResult) { alert("Faça uma análise primeiro!"); return; }
+    
+    const textoLimpo = lastAIResult.replace(/\[CATEGORIA:.*?\]/g, '').trim();
+    const texto = `🐾 *VIGIA PET - Relatório*\n\n${textoLimpo}\n\n📊 *Resumo:*\n😴 Descanso: ${Math.floor(stats.descanco / 60)}m\n🍖 Alimentação: ${Math.floor(stats.alimentacao / 60)}m\n🐕 Atividade: ${Math.floor(stats.atividade / 60)}m`;
+    
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
+});
+
+// ==========================================
+// HISTÓRICO
+// ==========================================
+historyBtn.addEventListener('click', () => {
+    const historico = JSON.parse(localStorage.getItem('vigiapet_history') || '[]');
+    historyList.innerHTML = '';
+    
+    if (historico.length === 0) {
+        historyList.innerHTML = '<li>Nenhuma análise registrada ainda.</li>';
+    } else {
+        historico.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${item.data}</strong><br>${item.categoria.toUpperCase()} · ${item.segundos}s`;
+            historyList.appendChild(li);
+        });
+    }
+    historyModal.style.display = 'flex';
+});
+
+closeModal.addEventListener('click', () => { historyModal.style.display = 'none'; });
+
+function salvarHistorico(texto, categoria, segundos) {
+    const historico = JSON.parse(localStorage.getItem('vigiapet_history') || '[]');
+    historico.unshift({ data: new Date().toLocaleString('pt-BR'), texto, categoria, segundos });
+    if (historico.length > 10) historico.pop();
+    localStorage.setItem('vigiapet_history', JSON.stringify(historico));
+}
+
+// ==========================================
+// INICIALIZAÇÃO
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    initCamera();
+    updateStatsUI();
+});
