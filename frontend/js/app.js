@@ -141,9 +141,17 @@ async function finalizarGravacao() {
 function processarRespostaIA(texto, segundos) {
     let categoria = "atividade";
     let badgeText = "ATIVIDADE";
+    let badgeClass = "active";
 
-    if (texto.includes("[CATEGORIA: DESCANSO]")) { categoria = "descanco"; badgeText = "DESCANSO"; }
-    else if (texto.includes("[CATEGORIA: ALIMENTACAO]")) { categoria = "alimentacao"; badgeText = "ALIMENTAÇÃO"; }
+    if (texto.includes("[CATEGORIA: DESCANSO]")) { 
+        categoria = "descanco"; 
+        badgeText = "DESCANSO"; 
+        badgeClass = "sleep"; 
+    } else if (texto.includes("[CATEGORIA: ALIMENTACAO]")) { 
+        categoria = "alimentacao"; 
+        badgeText = "ALIMENTAÇÃO"; 
+        badgeClass = "eat"; 
+    }
 
     stats[categoria] += segundos;
     updateStatsUI();
@@ -154,6 +162,7 @@ function processarRespostaIA(texto, segundos) {
     
     iaCategoryBadge.style.display = 'inline-block';
     iaCategoryBadge.textContent = badgeText;
+    iaCategoryBadge.className = `ia-badge ${badgeClass}`;
 
     iaList.innerHTML = '';
     const paragrafos = textoLimpo.split('\n').filter(p => p.trim() !== '');

@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VIGIA PET</title>
+    
+    <!-- Fonte amigável -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -42,7 +48,7 @@
             </div>
         </div>
 
-        <!-- Botão Principal (ALTERADO AQUI) -->
+        <!-- Botão Principal -->
         <button id="vigiarBtn" class="btn-primary">
             VIGIAR
         </button>
@@ -61,7 +67,7 @@
                     <span class="stat-value" id="sleepTime">0m</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="sleepBar" style="width: 0%;"></div>
+                    <div class="progress-fill sleep" id="sleepBar" style="width: 0%;"></div>
                 </div>
             </div>
             <div class="stat-card">
@@ -70,7 +76,7 @@
                     <span class="stat-value" id="eatTime">0m</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="eatBar" style="width: 0%;"></div>
+                    <div class="progress-fill eat" id="eatBar" style="width: 0%;"></div>
                 </div>
             </div>
             <div class="stat-card">
@@ -79,7 +85,7 @@
                     <span class="stat-value" id="activeTime">0m</span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="activeBar" style="width: 0%;"></div>
+                    <div class="progress-fill active" id="activeBar" style="width: 0%;"></div>
                 </div>
             </div>
         </div>
@@ -98,7 +104,7 @@
         <!-- Botões de Ação -->
         <div class="bottom-actions">
             <button id="historyBtn" class="btn-secondary">HISTÓRICO</button>
-            <button id="whatsappBtn" class="btn-secondary">COMPARTILHAR</button>
+            <button id="whatsappBtn" class="btn-secondary btn-whatsapp">COMPARTILHAR</button>
         </div>
 
         <!-- Modal de Histórico -->
