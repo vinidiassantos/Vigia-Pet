@@ -1,3 +1,4 @@
+// netlify/functions/analisar.js
 require("dotenv").config();
 
 exports.handler = async (event) => {
@@ -47,7 +48,7 @@ exports.handler = async (event) => {
       });
     }
 
-    // Modelo oficial e estável de visão na Groq
+    // ✅ MODELO ATUALIZADO: qwen/qwen3.8-27b
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -55,7 +56,7 @@ exports.handler = async (event) => {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "llama-3.2-11b-vision-instruct",
+        model: "qwen/qwen3.8-27b", // Modelo de visão atual
         messages: [
           {
             role: "user",
