@@ -16,16 +16,23 @@ exports.handler = async (event) => {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
 
-    // O prompt força a IA a categorizar o comportamento para o frontend atualizar os cards
+    // PROMPT OTIMIZADO COM EXEMPLOS (FEW-SHOT PROMPTING)
     const promptSistema = `Você é um assistente veterinário especialista em comportamento animal do aplicativo Vigia Pet.
     
-    REGRA CRÍTICA: A primeira linha da sua resposta DEVE ser EXATAMENTE uma destas opções (sem formatação markdown, apenas o texto):
+    Sua tarefa é analisar a imagem de um pet e classificá-lo em uma das 3 categorias.
+
+    REGRA CRÍTICA: A primeira linha da sua resposta DEVE ser EXATAMENTE uma destas tags (sem markdown):
     [CATEGORIA: DESCANSO]
     [CATEGORIA: ALIMENTACAO]
     [CATEGORIA: ATIVIDADE]
-    
-    Na linha seguinte, dê um diagnóstico amigável e direto sobre o que o pet está fazendo.
-    Depois, liste 3 recomendações práticas rápidas em tópicos.`;
+
+    EXEMPLOS DE COMO CLASSIFICAR:
+    - Se o pet estiver deitado, dormindo, com olhos fechados ou relaxado: [CATEGORIA: DESCANSO]
+    - Se o pet estiver comendo, bebendo água, focinho na tigela ou mastigando: [CATEGORIA: ALIMENTACAO]
+    - Se o pet estiver correndo, brincando, latindo, pulando ou muito agitado: [CATEGORIA: ATIVIDADE]
+
+    Após a tag da categoria, pule uma linha e dê um diagnóstico amigável e direto (máximo 2 frases).
+    Depois, liste 3 dicas práticas em tópicos (use quebras de linha).`;
 
     const content = [{ type: "text", text: promptSistema }];
     if (imageBase64) {
@@ -44,7 +51,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: "qwen/qwen3.8-27b",
         messages: [{ role: "user", content: content }],
-        temperature: 0.3
+        temperature: 0.1 // Temperatura baixa para ser mais preciso e menos "criativo"
       })
     });
 

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>VIGIA PET</title>
     
-    <!-- Fonte amigável -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +14,6 @@
 </head>
 <body>
     <div id="app">
-        <!-- Header -->
         <header>
             <div class="logo">
                 <span class="logo-text">VIGIA PE</span>
@@ -31,83 +29,70 @@
             </div>
         </header>
 
-        <!-- Área da Câmera -->
         <div class="camera-area active" id="cameraArea">
             <video id="video" autoplay playsinline muted></video>
-            
-            <!-- Timer de Gravação -->
             <div class="timer-overlay" id="timerOverlay" style="display: none;">
-                <div class="timer-ring">
-                    <span id="timerDisplay">30</span>
-                </div>
+                <div class="timer-ring"><span id="timerDisplay">30</span></div>
             </div>
-            
-            <!-- Status Overlay -->
             <div class="overlay" id="behaviorOverlay">
                 <span class="behavior-text" id="behaviorText">AGUARDANDO</span>
             </div>
         </div>
 
-        <!-- Botão Principal -->
-        <button id="vigiarBtn" class="btn-primary">
-            VIGIAR
-        </button>
+        <button id="vigiarBtn" class="btn-primary">VIGIAR</button>
 
-        <!-- Controles de Gravação -->
         <div class="controls-row" id="controlsRow" style="display: none;">
             <button id="pauseBtn" class="btn-secondary">PAUSAR</button>
             <button id="stopBtn" class="btn-secondary">ENCERRAR</button>
         </div>
 
-        <!-- Blocos de Estatísticas -->
         <div class="stats" id="statsContainer">
             <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">DESCANSO</span>
-                    <span class="stat-value" id="sleepTime">0m</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill sleep" id="sleepBar" style="width: 0%;"></div>
-                </div>
+                <span class="stat-label">DESCANSO</span>
+                <span class="stat-value" id="sleepTime">0m</span>
             </div>
             <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">ALIMENTAÇÃO</span>
-                    <span class="stat-value" id="eatTime">0m</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill eat" id="eatBar" style="width: 0%;"></div>
-                </div>
+                <span class="stat-label">ALIMENTAÇÃO</span>
+                <span class="stat-value" id="eatTime">0m</span>
             </div>
             <div class="stat-card">
-                <div class="stat-header">
-                    <span class="stat-label">ATIVIDADE</span>
-                    <span class="stat-value" id="activeTime">0m</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill active" id="activeBar" style="width: 0%;"></div>
-                </div>
+                <span class="stat-label">ATIVIDADE</span>
+                <span class="stat-value" id="activeTime">0m</span>
             </div>
         </div>
 
-        <!-- Dicas da IA -->
-        <div class="ia-respostas">
+        <!-- Relatório da IA em Destaque -->
+        <div class="ia-respostas" id="iaRespostasContainer">
             <div class="ia-header">
                 <h3>RELATÓRIO DA IA</h3>
                 <span class="ia-badge" id="iaCategoryBadge" style="display: none;">ANÁLISE</span>
             </div>
             <ul id="iaList">
-                <li class="ia-item placeholder">Aguardando início da vigília.</li>
+                <li class="ia-item placeholder">Aguardando início da vigília...</li>
             </ul>
         </div>
 
-        <!-- Botões de Ação -->
+        <!-- NOVO: Feedback da IA -->
+        <div class="feedback-container" id="feedbackContainer" style="display: none;">
+            <p class="feedback-title">A IA acertou o comportamento do seu pet?</p>
+            <div class="feedback-buttons" id="feedbackButtons">
+                <button id="btnCorrect" class="btn-feedback correct">👍 Sim</button>
+                <button id="btnIncorrect" class="btn-feedback incorrect">👎 Não</button>
+            </div>
+            
+            <div class="feedback-comment-box" id="feedbackCommentBox" style="display: none;">
+                <input type="text" id="feedbackComment" placeholder="O que a IA errou?">
+                <button id="btnSendFeedback" class="btn-send-feedback">Enviar</button>
+            </div>
+
+            <p class="feedback-thanks" id="feedbackThanks" style="display: none;">Obrigado pelo seu feedback! 🐾</p>
+        </div>
+
         <div class="bottom-actions">
             <button id="historyBtn" class="btn-secondary">HISTÓRICO</button>
             <button id="whatsappBtn" class="btn-secondary btn-whatsapp">COMPARTILHAR</button>
         </div>
 
-        <!-- Modal de Histórico -->
         <div id="historyModal" class="modal" style="display: none;">
             <div class="modal-content">
                 <span class="close-modal" id="closeModal">&times;</span>

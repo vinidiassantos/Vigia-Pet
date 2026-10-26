@@ -2,14 +2,14 @@
    RESET E BASE (Paleta 2 - Calma e Confiável)
    ============================================ */
 :root {
-    --bg-color: #F8FAFC;       /* Cinza Azulado Muito Claro (Slate 50) */
-    --card-bg: #FFFFFF;        /* Branco Puro */
-    --primary-color: #0F172A;  /* Azul Noite (Slate 900) */
-    --accent-color: #F97316;   /* Laranja (Orange 500) */
-    --accent-dark: #EA580C;    /* Laranja Escuro */
-    --text-main: #1E293B;      /* Texto Principal (Slate 800) */
-    --text-muted: #64748B;     /* Texto Secundário (Slate 500) */
-    --border-color: #E2E8F0;   /* Bordas (Slate 200) */
+    --bg-color: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --primary-color: #0F172A; 
+    --accent-color: #F97316;   
+    --accent-dark: #EA580C;    
+    --text-main: #1E293B;      
+    --text-muted: #64748B;     
+    --border-color: #E2E8F0;   
     --shadow-soft: 0 4px 20px rgba(15, 23, 42, 0.06);
     --shadow-btn: 0 4px 15px rgba(249, 115, 22, 0.3);
 }
@@ -38,9 +38,6 @@ body {
     overflow-y: auto;
 }
 
-/* ============================================
-   HEADER / LOGO
-   ============================================ */
 header {
     display: flex;
     justify-content: space-between;
@@ -78,9 +75,7 @@ header {
     display: flex; align-items: center; gap: 6px;
     font-size: 12px; font-weight: 700; color: var(--primary-color); 
     background: rgba(15, 23, 42, 0.05);
-    padding: 6px 12px;
-    border-radius: 20px;
-    letter-spacing: 0.5px;
+    padding: 6px 12px; border-radius: 20px;
     border: 1px solid rgba(15, 23, 42, 0.1);
 }
 .status-dot {
@@ -89,9 +84,6 @@ header {
 }
 @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-/* ============================================
-   CÂMERA
-   ============================================ */
 .camera-area {
     flex: 1; min-height: 260px; max-height: 420px; background: #000;
     border-radius: 24px; overflow: hidden; position: relative; margin-bottom: 24px;
@@ -103,15 +95,11 @@ header {
 .overlay {
     position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
     background: var(--card-bg); padding: 10px 24px; border-radius: 30px;
-    display: flex; align-items: center; gap: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 .behavior-text { font-size: 13px; font-weight: 800; color: var(--primary-color); letter-spacing: 1px; }
 
-/* Timer */
-.timer-overlay {
-    position: absolute; top: 16px; left: 16px; z-index: 10;
-}
+.timer-overlay { position: absolute; top: 16px; left: 16px; z-index: 10; }
 .timer-ring {
     width: 48px; height: 48px; border-radius: 50%;
     background: var(--card-bg); border: 3px solid var(--accent-color);
@@ -120,83 +108,137 @@ header {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* ============================================
-   BOTÕES
-   ============================================ */
 .btn-primary {
     width: 100%; padding: 18px; background: var(--accent-color); color: #FFFFFF;
-    border: none; border-radius: 16px; font-family: 'Nunito', sans-serif;
-    font-size: 18px; font-weight: 800; cursor: pointer; transition: all 0.2s ease;
-    letter-spacing: 1px; box-shadow: var(--shadow-btn);
+    border: none; border-radius: 16px; font-size: 18px; font-weight: 800; 
+    cursor: pointer; transition: all 0.2s ease; letter-spacing: 1px; 
+    box-shadow: var(--shadow-btn);
 }
 .btn-primary:hover { background: var(--accent-dark); transform: translateY(-2px); }
-.btn-primary:active { transform: scale(0.98); }
 
 .controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
 
 .btn-secondary {
     padding: 14px; border: 2px solid var(--border-color); border-radius: 16px; 
-    font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; 
-    transition: all 0.2s; background: var(--card-bg); color: var(--text-main);
-    box-shadow: var(--shadow-soft);
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; 
+    background: var(--card-bg); color: var(--text-main); box-shadow: var(--shadow-soft);
 }
 .btn-secondary:hover { border-color: var(--primary-color); }
-.btn-secondary:active { background: var(--bg-color); }
 
-.btn-whatsapp {
-    color: var(--accent-color);
-    border-color: rgba(249, 115, 22, 0.3);
+.btn-whatsapp { color: var(--accent-color); border-color: rgba(249, 115, 22, 0.3); }
+
+.stats { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 12px; 
+    margin-bottom: 24px; 
 }
-.btn-whatsapp:hover { border-color: var(--accent-color); background: rgba(249, 115, 22, 0.05); }
-
-/* ============================================
-   ESTATÍSTICAS COM BARRAS
-   ============================================ */
-.stats { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; flex-shrink: 0; }
 .stat-card { 
-    background: var(--card-bg); 
-    padding: 16px; 
-    border-radius: 16px; 
-    box-shadow: var(--shadow-soft);
-    border: 1px solid var(--border-color);
+    background: var(--card-bg); padding: 16px 8px; border-radius: 16px; 
+    box-shadow: var(--shadow-soft); border: 1px solid var(--border-color);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.stat-label { font-size: 12px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; }
-.stat-value { font-size: 16px; font-weight: 800; color: var(--primary-color); }
+.stat-label { font-size: 10px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px; margin-bottom: 4px; }
+.stat-value { font-size: 22px; font-weight: 800; color: var(--primary-color); }
 
-.progress-bar { height: 6px; background: var(--bg-color); border-radius: 3px; overflow: hidden; }
-.progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
-.progress-fill.sleep { background: var(--primary-color); } /* Azul Noite */
-.progress-fill.eat { background: var(--accent-color); }    /* Laranja */
-.progress-fill.active { background: #3B82F6; }            /* Azul Vivo para diferenciar */
-
-/* ============================================
-   DICAS DA IA
-   ============================================ */
 .ia-respostas {
-    background: var(--card-bg); border-radius: 20px; padding: 20px; margin-bottom: 24px;
-    min-height: 120px; max-height: 260px; overflow-y: auto; box-shadow: var(--shadow-soft);
-    border: 1px solid var(--border-color);
+    background: #FFFDFB;
+    border: 2px solid var(--accent-color);
+    border-radius: 20px; padding: 20px; margin-bottom: 16px;
+    min-height: 140px; max-height: 300px; overflow-y: auto; 
+    box-shadow: 0 8px 30px rgba(249, 115, 22, 0.1);
 }
-.ia-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.ia-respostas h3 { font-size: 13px; color: var(--text-muted); font-weight: 800; letter-spacing: 1px; }
+.ia-header { 
+    display: flex; justify-content: space-between; align-items: center; 
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid rgba(249, 115, 22, 0.2);
+}
+.ia-respostas h3 { font-size: 14px; color: var(--accent-dark); font-weight: 800; letter-spacing: 1px; }
 
 .ia-badge {
-    font-size: 11px; padding: 4px 10px; border-radius: 8px;
+    font-size: 11px; padding: 6px 12px; border-radius: 8px;
     font-weight: 800; text-transform: uppercase; transition: all 0.3s;
-    background: var(--bg-color); color: var(--text-muted);
+    background: rgba(249, 115, 22, 0.1); color: var(--accent-dark);
 }
 .ia-badge.sleep { background: rgba(15, 23, 42, 0.1); color: var(--primary-color); }
-.ia-badge.eat { background: rgba(249, 115, 22, 0.15); color: var(--accent-dark); }
 .ia-badge.active { background: rgba(59, 130, 246, 0.15); color: #2563EB; }
 
 .ia-respostas ul { list-style: none; padding: 0; margin: 0; }
 .ia-item {
-    padding: 12px 0; border-bottom: 1px solid var(--bg-color);
-    font-size: 14px; color: var(--text-main); line-height: 1.6; word-break: break-word; white-space: pre-wrap;
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 0; border-bottom: 1px dashed rgba(249, 115, 22, 0.2);
+    font-size: 14px; color: var(--text-main); line-height: 1.5; word-break: break-word;
 }
 .ia-item:last-child { border-bottom: none; }
-.ia-item.placeholder { color: var(--text-muted); font-style: italic; }
+.ia-item .emoji { font-size: 18px; }
+.ia-item.placeholder { color: var(--text-muted); font-style: italic; border: none; }
+
+/* ============================================
+   NOVO: FEEDBACK DA IA
+   ============================================ */
+.feedback-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 24px;
+    text-align: center;
+    box-shadow: var(--shadow-soft);
+}
+.feedback-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 12px;
+}
+.feedback-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+.btn-feedback {
+    padding: 10px 20px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-feedback:hover { background: #EDF2F7; }
+.btn-feedback.correct:hover { border-color: #10B981; color: #10B981; background: rgba(16, 185, 129, 0.05); }
+.btn-feedback.incorrect:hover { border-color: #EF4444; color: #EF4444; background: rgba(239, 68, 68, 0.05); }
+
+.feedback-comment-box {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+.feedback-comment-box input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    outline: none;
+}
+.feedback-comment-box input:focus { border-color: var(--primary-color); }
+.btn-send-feedback {
+    padding: 10px 16px;
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.feedback-thanks {
+    font-size: 13px;
+    font-weight: 700;
+    color: #10B981;
+}
 
 /* ============================================
    AÇÕES INFERIORES E MODAL
@@ -222,7 +264,6 @@ header {
     color: var(--text-main); font-weight: 600;
 }
 
-/* Scrollbar Minimalista */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 3px; }

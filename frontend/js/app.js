@@ -26,6 +26,9 @@ let lastAIResult = "";
 
 let stats = JSON.parse(localStorage.getItem('vigiapet_stats')) || { descanco: 0, alimentacao: 0, atividade: 0 };
 
+// Emojis discretos para as dicas
+const petEmojis = ['🐾', '💡', '🦴', '🎾', '🩺', '😴', '🍖'];
+
 // ==========================================
 // CÂMERA
 // ==========================================
@@ -43,15 +46,9 @@ async function initCamera() {
 // ATUALIZAR UI DAS ESTATÍSTICAS
 // ==========================================
 function updateStatsUI() {
-    const total = stats.descanco + stats.alimentacao + stats.atividade || 1;
-    
     document.getElementById('sleepTime').textContent = `${Math.floor(stats.descanco / 60)}m`;
     document.getElementById('eatTime').textContent = `${Math.floor(stats.alimentacao / 60)}m`;
     document.getElementById('activeTime').textContent = `${Math.floor(stats.atividade / 60)}m`;
-
-    document.getElementById('sleepBar').style.width = `${(stats.descanco / total) * 100}%`;
-    document.getElementById('eatBar').style.width = `${(stats.alimentacao / total) * 100}%`;
-    document.getElementById('activeBar').style.width = `${(stats.atividade / total) * 100}%`;
 
     localStorage.setItem('vigiapet_stats', JSON.stringify(stats));
 }
@@ -136,7 +133,7 @@ async function finalizarGravacao() {
 }
 
 // ==========================================
-// PROCESSAR RESPOSTA DA IA
+// PROCESSAR RESPOSTA DA IA COM EMOJIS
 // ==========================================
 function processarRespostaIA(texto, segundos) {
     let categoria = "atividade";
@@ -144,18 +141,15 @@ function processarRespostaIA(texto, segundos) {
     let badgeClass = "active";
 
     if (texto.includes("[CATEGORIA: DESCANSO]")) { 
-        categoria = "descanco"; 
-        badgeText = "DESCANSO"; 
-        badgeClass = "sleep"; 
+        categoria = "descanco"; badgeText = "DESCANSO"; badgeClass = "sleep"; 
     } else if (texto.includes("[CATEGORIA: ALIMENTACAO]")) { 
-        categoria = "alimentacao"; 
-        badgeText = "ALIMENTAÇÃO"; 
-        badgeClass = "eat"; 
+        categoria = "alimentacao"; badgeText = "ALIMENTAÇÃO"; badgeClass = "eat"; 
     }
 
     stats[categoria] += segundos;
     updateStatsUI();
 
+    // Limpa as tags do sistema e formata o texto
     const textoLimpo = texto.replace(/\[CATEGORIA:.*?\]/g, '').trim();
     
     behaviorText.textContent = "CONCLUÍDO";
@@ -165,11 +159,20 @@ function processarRespostaIA(texto, segundos) {
     iaCategoryBadge.className = `ia-badge ${badgeClass}`;
 
     iaList.innerHTML = '';
+    // Divide por parágrafos e filtra linhas vazias
     const paragrafos = textoLimpo.split('\n').filter(p => p.trim() !== '');
-    paragrafos.forEach(p => {
+    
+    paragrafos.forEach((p, index) => {
         const li = document.createElement('li');
         li.className = 'ia-item';
-        li.textContent = p;
+        
+        // Remove asteriscos ou traços que a IA possa ter colocado no início
+        const textoFormatado = p.replace(/^[*-]\s*/, '');
+        
+        // Sorteia um emoji pet discreto
+        const emoji = petEmojis[index % petEmojis.length];
+        
+        li.innerHTML = `<span class="emoji">${emoji}</span> <span class="texto">${textoFormatado}</span>`;
         iaList.appendChild(li);
     });
 
