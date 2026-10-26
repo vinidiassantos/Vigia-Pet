@@ -3,14 +3,12 @@
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const vigiarBtn = document.getElementById('vigiarBtn');
-const btnText = document.getElementById('btn-text');
 const pauseBtn = document.getElementById('pauseBtn');
 const stopBtn = document.getElementById('stopBtn');
 const controlsRow = document.getElementById('controlsRow');
 const timerOverlay = document.getElementById('timerOverlay');
 const timerDisplay = document.getElementById('timerDisplay');
 const behaviorText = document.getElementById('behaviorText');
-const behaviorIcon = document.getElementById('behaviorIcon');
 const iaList = document.getElementById('iaList');
 const iaCategoryBadge = document.getElementById('iaCategoryBadge');
 const historyBtn = document.getElementById('historyBtn');
@@ -26,7 +24,6 @@ let timeLeft = 30;
 let timerInterval = null;
 let lastAIResult = "";
 
-// Estatísticas (segundos) persistidas
 let stats = JSON.parse(localStorage.getItem('vigiapet_stats')) || { descanco: 0, alimentacao: 0, atividade: 0 };
 
 // ==========================================
@@ -72,9 +69,8 @@ vigiarBtn.addEventListener('click', () => {
     vigiarBtn.style.display = 'none';
     controlsRow.style.display = 'grid';
     timerOverlay.style.display = 'flex';
-    behaviorText.textContent = "Gravando...";
-    behaviorIcon.textContent = "🔴";
-    iaList.innerHTML = '<li class="ia-item placeholder">💡 Capturando imagem...</li>';
+    behaviorText.textContent = "GRAVANDO";
+    iaList.innerHTML = '<li class="ia-item placeholder">Capturando imagem...</li>';
     iaCategoryBadge.style.display = 'none';
     updateTimerDisplay();
 
@@ -89,8 +85,8 @@ vigiarBtn.addEventListener('click', () => {
 
 pauseBtn.addEventListener('click', () => {
     isPaused = !isPaused;
-    pauseBtn.textContent = isPaused ? "▶ Retomar" : "⏸ Pausar";
-    behaviorText.textContent = isPaused ? "Pausado" : "Gravando...";
+    pauseBtn.textContent = isPaused ? "RETOMAR" : "PAUSAR";
+    behaviorText.textContent = isPaused ? "PAUSADO" : "GRAVANDO";
 });
 
 stopBtn.addEventListener('click', finalizarGravacao);
@@ -110,9 +106,8 @@ async function finalizarGravacao() {
 
     controlsRow.style.display = 'none';
     timerOverlay.style.display = 'none';
-    behaviorText.textContent = "IA Analisando...";
-    behaviorIcon.textContent = "🧠";
-
+    behaviorText.textContent = "ANALISANDO";
+    
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -134,8 +129,7 @@ async function finalizarGravacao() {
     } catch (error) {
         console.error("Erro na análise:", error);
         alert("Erro ao analisar: " + error.message);
-        behaviorText.textContent = "Erro";
-        behaviorIcon.textContent = "❌";
+        behaviorText.textContent = "ERRO";
     } finally {
         vigiarBtn.style.display = 'flex';
     }
@@ -146,31 +140,27 @@ async function finalizarGravacao() {
 // ==========================================
 function processarRespostaIA(texto, segundos) {
     let categoria = "atividade";
-    let badgeText = "Atividade";
-    let badgeColor = "#fb923c";
+    let badgeText = "ATIVIDADE";
 
-    if (texto.includes("[CATEGORIA: DESCANSO]")) { categoria = "descanco"; badgeText = "Descanso"; badgeColor = "#38bdf8"; }
-    else if (texto.includes("[CATEGORIA: ALIMENTACAO]")) { categoria = "alimentacao"; badgeText = "Alimentação"; badgeColor = "#4ade80"; }
+    if (texto.includes("[CATEGORIA: DESCANSO]")) { categoria = "descanco"; badgeText = "DESCANSO"; }
+    else if (texto.includes("[CATEGORIA: ALIMENTACAO]")) { categoria = "alimentacao"; badgeText = "ALIMENTAÇÃO"; }
 
     stats[categoria] += segundos;
     updateStatsUI();
 
     const textoLimpo = texto.replace(/\[CATEGORIA:.*?\]/g, '').trim();
     
-    behaviorText.textContent = "Análise Concluída";
-    behaviorIcon.textContent = "✅";
+    behaviorText.textContent = "CONCLUÍDO";
     
     iaCategoryBadge.style.display = 'inline-block';
     iaCategoryBadge.textContent = badgeText;
-    iaCategoryBadge.style.color = badgeColor;
-    iaCategoryBadge.style.background = `${badgeColor}20`;
 
     iaList.innerHTML = '';
     const paragrafos = textoLimpo.split('\n').filter(p => p.trim() !== '');
     paragrafos.forEach(p => {
         const li = document.createElement('li');
         li.className = 'ia-item';
-        li.textContent = `💡 ${p}`;
+        li.textContent = p;
         iaList.appendChild(li);
     });
 
@@ -184,7 +174,7 @@ whatsappBtn.addEventListener('click', () => {
     if (!lastAIResult) { alert("Faça uma análise primeiro!"); return; }
     
     const textoLimpo = lastAIResult.replace(/\[CATEGORIA:.*?\]/g, '').trim();
-    const texto = `🐾 *VIGIA PET - Relatório*\n\n${textoLimpo}\n\n📊 *Resumo:*\n😴 Descanso: ${Math.floor(stats.descanco / 60)}m\n🍖 Alimentação: ${Math.floor(stats.alimentacao / 60)}m\n🐕 Atividade: ${Math.floor(stats.atividade / 60)}m`;
+    const texto = `*VIGIA PET - RELATÓRIO*\n\n${textoLimpo}\n\n*RESUMO:*\nDescanso: ${Math.floor(stats.descanco / 60)}m\nAlimentação: ${Math.floor(stats.alimentacao / 60)}m\nAtividade: ${Math.floor(stats.atividade / 60)}m`;
     
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
 });
@@ -197,7 +187,7 @@ historyBtn.addEventListener('click', () => {
     historyList.innerHTML = '';
     
     if (historico.length === 0) {
-        historyList.innerHTML = '<li>Nenhuma análise registrada ainda.</li>';
+        historyList.innerHTML = '<li>Nenhuma análise registrada.</li>';
     } else {
         historico.forEach(item => {
             const li = document.createElement('li');
