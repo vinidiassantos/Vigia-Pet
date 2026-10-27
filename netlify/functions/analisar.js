@@ -12,26 +12,37 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: "Method Not Allowed" };
 
   try {
-    const { imageBase64 } = JSON.parse(event.body || "{}");
+    const { imageBase64, petInfo } = JSON.parse(event.body || "{}");
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
 
+    // Personalização básica se houver dados do pet no futuro
+    const nomePet = petInfo?.name ? petInfo.name : "seu pet";
+    const racaPet = petInfo?.breed ? `(raça: ${petInfo.breed})` : "";
+
     const promptSistema = `Você é um assistente veterinário especialista em comportamento animal do aplicativo Vigia Pet.
     
-    Sua tarefa é analisar a imagem de um pet e classificá-lo em uma das 3 categorias.
+    Sua tarefa é analisar a imagem de ${nomePet} ${racaPet} e classificá-lo.
 
     REGRA CRÍTICA: A primeira linha da sua resposta DEVE ser EXATAMENTE uma destas tags (sem markdown):
     [CATEGORIA: DESCANSO]
     [CATEGORIA: ALIMENTACAO]
     [CATEGORIA: ATIVIDADE]
 
-    EXEMPLOS DE COMO CLASSIFICAR:
-    - Se o pet estiver deitado, dormindo, com olhos fechados ou relaxado: [CATEGORIA: DESCANSO]
-    - Se o pet estiver comendo, bebendo água, focinho na tigela ou mastigando: [CATEGORIA: ALIMENTACAO]
-    - Se o pet estiver correndo, brincando, latindo, pulando ou muito agitado: [CATEGORIA: ATIVIDADE]
+    Siga EXATAMENTE este formato de resposta:
+    Linha 1: A tag da categoria (ex: [CATEGORIA: DESCANSO])
+    Linha 2: Uma quebra de linha vazia.
+    Linha 3: O diagnóstico (ex: Seu pet está relaxado e dormindo profundamente.)
+    Linha 4: Uma quebra de linha vazia.
+    Linha 5: - Dica prática 1
+    Linha 6: - Dica prática 2
+    Linha 7: - Dica prática 3
 
-    Após a tag da categoria, pule uma linha e dê um diagnóstico amigável e direto (máximo 2 frases).
-    Depois, liste 3 dicas práticas em tópicos (use quebras de linha).`;
+    Exemplos de classificação:
+    - Pet deitado, dormindo, olhos fechados: [CATEGORIA: DESCANSO]
+    - Pet comendo, bebendo, focinho na tigela: [CATEGORIA: ALIMENTACAO]
+    - Pet correndo, brincando, latindo: [CATEGORIA: ATIVIDADE]
+    `;
 
     const content = [{ type: "text", text: promptSistema }];
     if (imageBase64) {
