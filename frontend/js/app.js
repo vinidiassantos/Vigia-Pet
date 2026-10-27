@@ -17,16 +17,28 @@ const historyModal = document.getElementById('historyModal');
 const closeModal = document.getElementById('closeModal');
 const historyList = document.getElementById('historyList');
 
+// Elementos de Feedback
+const feedbackContainer = document.getElementById('feedbackContainer');
+const btnCorrect = document.getElementById('btnCorrect');
+const btnIncorrect = document.getElementById('btnIncorrect');
+const feedbackCommentBox = document.getElementById('feedbackCommentBox');
+const feedbackComment = document.getElementById('feedbackComment');
+const btnSendFeedback = document.getElementById('btnSendFeedback');
+const feedbackThanks = document.getElementById('feedbackThanks');
+const feedbackButtons = document.getElementById('feedbackButtons');
+
+const cameraWrapper = document.querySelector('.camera-wrapper');
+
 let stream = null;
 let isRecording = false;
 let isPaused = false;
 let timeLeft = 30;
 let timerInterval = null;
 let lastAIResult = "";
+let currentCategory = "atividade";
 
 let stats = JSON.parse(localStorage.getItem('vigiapet_stats')) || { descanco: 0, alimentacao: 0, atividade: 0 };
 
-// Emojis discretos para as dicas
 const petEmojis = ['🐾', '💡', '🦴', '🎾', '🩺', '😴', '🍖'];
 
 // ==========================================
@@ -36,6 +48,7 @@ async function initCamera() {
     try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         video.srcObject = stream;
+        cameraWrapper.classList.add('active');
     } catch (err) {
         console.error("Erro na câmera:", err);
         alert("Permita o acesso à câmera para usar o Vigia Pet.");
@@ -49,7 +62,6 @@ function updateStatsUI() {
     document.getElementById('sleepTime').textContent = `${Math.floor(stats.descanco / 60)}m`;
     document.getElementById('eatTime').textContent = `${Math.floor(stats.alimentacao / 60)}m`;
     document.getElementById('activeTime').textContent = `${Math.floor(stats.atividade / 60)}m`;
-
     localStorage.setItem('vigiapet_stats', JSON.stringify(stats));
 }
 
@@ -62,6 +74,11 @@ vigiarBtn.addEventListener('click', () => {
     isRecording = true;
     isPaused = false;
     timeLeft = 30;
+
+    feedbackContainer.style.display = 'none';
+    feedbackButtons.style.display = 'flex';
+    feedbackCommentBox.style.display = 'none';
+    feedbackThanks.style.display = 'none';
 
     vigiarBtn.style.display = 'none';
     controlsRow.style.display = 'grid';
@@ -133,25 +150,23 @@ async function finalizarGravacao() {
 }
 
 // ==========================================
-// PROCESSAR RESPOSTA DA IA COM EMOJIS
+// PROCESSAR RESPOSTA DA IA E MOSTRAR FEEDBACK
 // ==========================================
 function processarRespostaIA(texto, segundos) {
-    let categoria = "atividade";
+    currentCategory = "atividade";
     let badgeText = "ATIVIDADE";
     let badgeClass = "active";
 
     if (texto.includes("[CATEGORIA: DESCANSO]")) { 
-        categoria = "descanco"; badgeText = "DESCANSO"; badgeClass = "sleep"; 
+        currentCategory = "descanco"; badgeText = "DESCANSO"; badgeClass = "sleep"; 
     } else if (texto.includes("[CATEGORIA: ALIMENTACAO]")) { 
-        categoria = "alimentacao"; badgeText = "ALIMENTAÇÃO"; badgeClass = "eat"; 
+        currentCategory = "alimentacao"; badgeText = "ALIMENTAÇÃO"; badgeClass = "eat"; 
     }
 
-    stats[categoria] += segundos;
+    stats[currentCategory] += segundos;
     updateStatsUI();
 
-    // Limpa as tags do sistema e formata o texto
     const textoLimpo = texto.replace(/\[CATEGORIA:.*?\]/g, '').trim();
-    
     behaviorText.textContent = "CONCLUÍDO";
     
     iaCategoryBadge.style.display = 'inline-block';
@@ -159,24 +174,57 @@ function processarRespostaIA(texto, segundos) {
     iaCategoryBadge.className = `ia-badge ${badgeClass}`;
 
     iaList.innerHTML = '';
-    // Divide por parágrafos e filtra linhas vazias
     const paragrafos = textoLimpo.split('\n').filter(p => p.trim() !== '');
     
     paragrafos.forEach((p, index) => {
         const li = document.createElement('li');
         li.className = 'ia-item';
-        
-        // Remove asteriscos ou traços que a IA possa ter colocado no início
         const textoFormatado = p.replace(/^[*-]\s*/, '');
-        
-        // Sorteia um emoji pet discreto
         const emoji = petEmojis[index % petEmojis.length];
-        
         li.innerHTML = `<span class="emoji">${emoji}</span> <span class="texto">${textoFormatado}</span>`;
         iaList.appendChild(li);
     });
 
-    salvarHistorico(textoLimpo, categoria, segundos);
+    salvarHistorico(textoLimpo, currentCategory, segundos);
+
+    feedbackContainer.style.display = 'block';
+}
+
+// ==========================================
+// LÓGICA DE FEEDBACK DO CLIENTE
+// ==========================================
+btnCorrect.addEventListener('click', () => {
+    enviarFeedback("correto", "");
+});
+
+btnIncorrect.addEventListener('click', () => {
+    feedbackButtons.style.display = 'none';
+    feedbackCommentBox.style.display = 'flex';
+});
+
+btnSendFeedback.addEventListener('click', () => {
+    const comentario = feedbackComment.value.trim();
+    enviarFeedback("incorreto", comentario);
+});
+
+function enviarFeedback(tipo, comentario) {
+    const feedbackData = {
+        tipo: tipo,
+        comentario: comentario,
+        categoriaIA: currentCategory,
+        textoIA: lastAIResult,
+        data: new Date().toISOString()
+    };
+
+    const feedbacksAntigos = JSON.parse(localStorage.getItem('vigiapet_feedbacks') || '[]');
+    feedbacksAntigos.push(feedbackData);
+    localStorage.setItem('vigiapet_feedbacks', JSON.stringify(feedbacksAntigos));
+
+    feedbackButtons.style.display = 'none';
+    feedbackCommentBox.style.display = 'none';
+    feedbackThanks.style.display = 'block';
+    
+    console.log("Feedback salvo:", feedbackData);
 }
 
 // ==========================================
@@ -185,7 +233,7 @@ function processarRespostaIA(texto, segundos) {
 whatsappBtn.addEventListener('click', () => {
     if (!lastAIResult) { alert("Faça uma análise primeiro!"); return; }
     
-    const textoLimpo = lastAIResult.replace(/\[CATEGORIA:.*?\]/g, '').trim();
+    const textoLimpo = lastAIResult.replace(/\[CATEGORIA:.*?\]/g, '');
     const texto = `*VIGIA PET - RELATÓRIO*\n\n${textoLimpo}\n\n*RESUMO:*\nDescanso: ${Math.floor(stats.descanco / 60)}m\nAlimentação: ${Math.floor(stats.alimentacao / 60)}m\nAtividade: ${Math.floor(stats.atividade / 60)}m`;
     
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');

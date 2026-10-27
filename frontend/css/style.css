@@ -1,17 +1,19 @@
 /* ============================================
-   RESET E BASE (Paleta 2 - Calma e Confiável)
+   RESET E BASE (Paleta Acolhedora 2026)
    ============================================ */
 :root {
-    --bg-color: #F8FAFC;
-    --card-bg: #FFFFFF;
-    --primary-color: #0F172A; 
-    --accent-color: #F97316;   
-    --accent-dark: #EA580C;    
-    --text-main: #1E293B;      
-    --text-muted: #64748B;     
-    --border-color: #E2E8F0;   
-    --shadow-soft: 0 4px 20px rgba(15, 23, 42, 0.06);
-    --shadow-btn: 0 4px 15px rgba(249, 115, 22, 0.3);
+    --bg-color: #F9F5F0;       /* Creme (Fundo) */
+    --card-bg: #FFFFFF;        /* Branco (Cartões) */
+    --primary-color: #5B9F4F;  /* Verde Veterinário */
+    --primary-dark: #4A8A3F;
+    --accent-color: #F7B731;   /* Laranja Quente */
+    --accent-dark: #E5A623;
+    --text-main: #2D3748;      /* Cinza Escuro (Suave) */
+    --text-muted: #718096;     /* Cinza para textos secundários */
+    --border-color: #E2E8F0;   /* Bordas Suaves */
+    --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.04);
+    --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.08);
+    --shadow-btn: 0 6px 20px rgba(247, 183, 49, 0.35);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,7 +40,9 @@ body {
     overflow-y: auto;
 }
 
-/* HEADER */
+/* ============================================
+   HEADER / LOGO / AVATAR
+   ============================================ */
 header {
     display: flex;
     justify-content: space-between;
@@ -72,32 +76,67 @@ header {
     color: var(--primary-color);
 }
 
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pet-avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    padding: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.pet-avatar:hover { transform: scale(1.1); }
+.pet-avatar svg { width: 20px; height: 20px; }
+
 .status {
     display: flex; align-items: center; gap: 6px;
     font-size: 12px; font-weight: 700; color: var(--primary-color); 
-    background: rgba(15, 23, 42, 0.05);
-    padding: 6px 12px; border-radius: 20px;
-    border: 1px solid rgba(15, 23, 42, 0.1);
+    background: rgba(91, 159, 79, 0.1);
+    padding: 6px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
 }
 .status-dot {
-    width: 6px; height: 6px; background: #10B981; border-radius: 50%;
+    width: 6px; height: 6px; background: var(--primary-color); border-radius: 50%;
     animation: pulse-green 2s infinite;
 }
 @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-/* CÂMERA */
-.camera-area {
-    flex: 1; min-height: 260px; max-height: 420px; background: #000;
-    border-radius: 24px; overflow: hidden; position: relative; margin-bottom: 24px;
-    border: 1px solid var(--border-color); box-shadow: var(--shadow-soft); display: none;
+/* ============================================
+   CÂMERA COM BORDA GRADIENTE
+   ============================================ */
+.camera-wrapper {
+    padding: 4px;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    border-radius: 28px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-float);
+    display: none;
 }
-.camera-area.active { display: block; }
+.camera-wrapper.active { display: block; }
+
+.camera-area {
+    min-height: 260px; max-height: 420px; background: #000;
+    border-radius: 24px; overflow: hidden; position: relative;
+    display: flex; align-items: center; justify-content: center;
+}
 .camera-area video { width: 100%; height: 100%; object-fit: cover; }
 
 .overlay {
     position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
     background: var(--card-bg); padding: 10px 24px; border-radius: 30px;
-    display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 .behavior-text { font-size: 13px; font-weight: 800; color: var(--primary-color); letter-spacing: 1px; }
 
@@ -110,14 +149,16 @@ header {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* BOTÕES */
+/* ============================================
+   BOTÕES COM MICRO-INTERAÇÕES
+   ============================================ */
 .btn-primary {
     width: 100%; padding: 18px; background: var(--accent-color); color: #FFFFFF;
     border: none; border-radius: 16px; font-size: 18px; font-weight: 800; 
-    cursor: pointer; transition: all 0.2s ease; letter-spacing: 1px; 
-    box-shadow: var(--shadow-btn);
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    letter-spacing: 1px; box-shadow: var(--shadow-btn);
 }
-.btn-primary:hover { background: var(--accent-dark); transform: translateY(-2px); }
+.btn-primary:hover { background: var(--accent-dark); transform: translateY(-3px) scale(1.02); }
 .btn-primary:active { transform: scale(0.98); }
 
 .controls-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
@@ -127,13 +168,14 @@ header {
     font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; 
     background: var(--card-bg); color: var(--text-main); box-shadow: var(--shadow-soft);
 }
-.btn-secondary:hover { border-color: var(--primary-color); }
-.btn-secondary:active { background: var(--bg-color); }
+.btn-secondary:hover { border-color: var(--primary-color); color: var(--primary-color); }
 
-.btn-whatsapp { color: var(--accent-color); border-color: rgba(249, 115, 22, 0.3); }
-.btn-whatsapp:hover { border-color: var(--accent-color); background: rgba(249, 115, 22, 0.05); }
+.btn-whatsapp { color: var(--primary-color); border-color: rgba(91, 159, 79, 0.3); }
+.btn-whatsapp:hover { border-color: var(--primary-color); background: rgba(91, 159, 79, 0.05); }
 
-/* ESTATÍSTICAS */
+/* ============================================
+   ESTATÍSTICAS COM ÍCONES E CARDS FLUTUANTES
+   ============================================ */
 .stats { 
     display: grid; 
     grid-template-columns: repeat(3, 1fr); 
@@ -141,41 +183,69 @@ header {
     margin-bottom: 24px; 
 }
 .stat-card { 
-    background: var(--card-bg); padding: 16px 8px; border-radius: 16px; 
-    box-shadow: var(--shadow-soft); border: 1px solid var(--border-color);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--card-bg); 
+    padding: 16px 8px; 
+    border-radius: 20px; 
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: transform 0.2s;
+    cursor: default;
 }
-.stat-label { font-size: 10px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px; margin-bottom: 4px; }
-.stat-value { font-size: 22px; font-weight: 800; color: var(--primary-color); }
+.stat-card:hover { transform: translateY(-4px); }
 
-/* RELATÓRIO DA IA */
+.stat-icon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    padding: 6px;
+}
+.stat-icon svg { width: 100%; height: 100%; }
+
+.stat-icon.sleep { background: rgba(91, 159, 79, 0.1); color: var(--primary-color); }
+.stat-icon.eat { background: rgba(247, 183, 49, 0.15); color: var(--accent-color); }
+.stat-icon.active { background: rgba(229, 62, 62, 0.1); color: #E53E3E; }
+
+.stat-label { font-size: 10px; color: var(--text-muted); font-weight: 800; letter-spacing: 0.5px; margin-bottom: 4px; }
+.stat-value { font-size: 22px; font-weight: 800; color: var(--text-main); }
+
+/* ============================================
+   RELATÓRIO DA IA (Card Verde Suave)
+   ============================================ */
 .ia-respostas {
-    background: #FFFDFB;
-    border: 2px solid var(--accent-color);
-    border-radius: 20px; padding: 20px; margin-bottom: 16px;
+    background: #F0F7EC; /* Verde muito claro */
+    border: 2px solid rgba(91, 159, 79, 0.3);
+    border-radius: 24px; padding: 20px; margin-bottom: 16px;
     min-height: 140px; max-height: 300px; overflow-y: auto; 
-    box-shadow: 0 8px 30px rgba(249, 115, 22, 0.1);
+    box-shadow: 0 8px 30px rgba(91, 159, 79, 0.08);
 }
 .ia-header { 
     display: flex; justify-content: space-between; align-items: center; 
     margin-bottom: 16px; padding-bottom: 12px;
-    border-bottom: 1px solid rgba(249, 115, 22, 0.2);
+    border-bottom: 1px solid rgba(91, 159, 79, 0.2);
 }
-.ia-respostas h3 { font-size: 14px; color: var(--accent-dark); font-weight: 800; letter-spacing: 1px; }
+.ia-respostas h3 { font-size: 14px; color: var(--primary-color); font-weight: 800; letter-spacing: 1px; }
 
 .ia-badge {
     font-size: 11px; padding: 6px 12px; border-radius: 8px;
     font-weight: 800; text-transform: uppercase; transition: all 0.3s;
-    background: rgba(249, 115, 22, 0.1); color: var(--accent-dark);
+    background: rgba(91, 159, 79, 0.15); color: var(--primary-color);
 }
-.ia-badge.sleep { background: rgba(15, 23, 42, 0.1); color: var(--primary-color); }
-.ia-badge.eat { background: rgba(249, 115, 22, 0.1); color: var(--accent-dark); }
-.ia-badge.active { background: rgba(59, 130, 246, 0.15); color: #2563EB; }
+.ia-badge.sleep { background: rgba(91, 159, 79, 0.15); color: var(--primary-color); }
+.ia-badge.eat { background: rgba(247, 183, 49, 0.15); color: var(--accent-dark); }
+.ia-badge.active { background: rgba(229, 62, 62, 0.15); color: #E53E3E; }
 
 .ia-respostas ul { list-style: none; padding: 0; margin: 0; }
 .ia-item {
     display: flex; align-items: flex-start; gap: 10px;
-    padding: 12px 0; border-bottom: 1px dashed rgba(249, 115, 22, 0.2);
+    padding: 12px 0; border-bottom: 1px dashed rgba(91, 159, 79, 0.2);
     font-size: 14px; color: var(--text-main); line-height: 1.5; word-break: break-word;
 }
 .ia-item:last-child { border-bottom: none; }
@@ -188,7 +258,7 @@ header {
 .feedback-container {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 16px;
     margin-bottom: 24px;
     text-align: center;
@@ -214,10 +284,10 @@ header {
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
-    color: var(--text-main);
 }
-.btn-feedback:hover { background: #F8FAFC; border-color: var(--primary-color); }
-.btn-feedback:active { transform: scale(0.95); }
+.btn-feedback:hover { transform: scale(1.05); }
+.btn-feedback.correct:hover { border-color: var(--primary-color); color: var(--primary-color); background: rgba(91, 159, 79, 0.05); }
+.btn-feedback.incorrect:hover { border-color: #E53E3E; color: #E53E3E; background: rgba(229, 62, 62, 0.05); }
 
 .feedback-comment-box {
     display: flex;
@@ -246,15 +316,17 @@ header {
 .feedback-thanks {
     font-size: 13px;
     font-weight: 700;
-    color: #10B981;
+    color: var(--primary-color);
 }
 
-/* AÇÕES INFERIORES E MODAL */
+/* ============================================
+   AÇÕES INFERIORES E MODAL
+   ============================================ */
 .bottom-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: auto; padding-bottom: 10px; }
 
 .modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+    background: rgba(45, 55, 72, 0.6); backdrop-filter: blur(4px);
     display: flex; justify-content: center; align-items: center; z-index: 1000;
 }
 .modal-content {
