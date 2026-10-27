@@ -210,7 +210,6 @@ header {
     color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
 }
 .feedback-thanks { font-size: 12px; font-weight: 700; color: #10B981; margin-bottom: 8px; }
-.feedback-form-link { font-size: 11px; color: var(--accent-color); text-decoration: underline; font-weight: 600; display: block; margin-top: 8px;}
 
 /* AÇÕES INFERIORES E FOOTER */
 .bottom-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; margin-bottom: 16px; }
