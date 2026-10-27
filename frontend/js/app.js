@@ -280,12 +280,29 @@ btnSendFeedback.addEventListener('click', () => {
 
 function salvarAvaliacao(tipo, comentario) {
     const feedbackData = {
-        tipo: tipo, comentario: comentario, categoriaIA: currentCategory,
-        textoIA: lastAIResult, data: new Date().toISOString()
+        tipo: tipo,
+        comentario: comentario,
+        categoriaIA: currentCategory,
+        textoIA: lastAIResult,
+        data: new Date().toISOString(),
     };
+
+    // 1. Salva localmente (como já fazia)
     const feedbacks = JSON.parse(localStorage.getItem('vigiapet_feedbacks') || '[]');
     feedbacks.push(feedbackData);
     localStorage.setItem('vigiapet_feedbacks', JSON.stringify(feedbacks));
+
+    // 2. Envia para o backend (Netlify Function → Netlify Blobs)
+    fetch('/.netlify/functions/salvar-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(feedbackData),
+    }).catch((err) => {
+        // Falha silenciosa: não quebra a UX se o envio remoto falhar
+        console.warn('Não foi possível enviar o feedback para o servidor:', err);
+    });
+
+    // 3. Atualiza a UI
     feedbackButtons.style.display = 'none';
     feedbackCommentBox.style.display = 'none';
     feedbackThanks.style.display = 'block';
