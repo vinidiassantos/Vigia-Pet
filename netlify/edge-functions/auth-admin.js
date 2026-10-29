@@ -21,9 +21,11 @@ export default async (request, context) => {
   if (sessionCookie) {
     const token = sessionCookie.split("=")[1];
     const expectedToken = await hashPassword(password);
+    
     if (token === expectedToken) {
-      // Sessão válida, permite o acesso
-      return;
+      // Sessão válida! Agora reescrevemos a rota para entregar o admin.html
+      url.pathname = "/admin.html";
+      return context.next(new Request(url, request));
     }
   }
 
@@ -37,7 +39,7 @@ export default async (request, context) => {
       const response = new Response(null, {
         status: 302,
         headers: {
-          Location: url.pathname,
+          Location: url.pathname, // Redireciona de volta para /admin
           "Set-Cookie": `admin_session=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`,
         },
       });
