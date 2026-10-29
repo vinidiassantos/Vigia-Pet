@@ -62,7 +62,7 @@ exports.handler = async (event) => {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "llama-3.2-11b-vision-preview", // <-- NOVO MODELO DE VISÃO
+        model: "qwen/qwen3.8-27b", // <-- NOVO MODELO DE VISÃO
         messages: [{ role: "user", content: content }],
         temperature: 0.1, // Mantém a IA focada e sem inventar coisas
         max_tokens: 500
