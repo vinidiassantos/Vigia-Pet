@@ -16,7 +16,7 @@ exports.handler = async (event) => {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
 
-    // Personalização básica se houver dados do pet no futuro
+    // Personalização básica se houver dados do pet
     const nomePet = petInfo?.name ? petInfo.name : "seu pet";
     const racaPet = petInfo?.breed ? `(raça: ${petInfo.breed})` : "";
 
@@ -24,12 +24,15 @@ exports.handler = async (event) => {
     
     Sua tarefa é analisar a imagem de ${nomePet} ${racaPet} e classificá-lo.
 
+    PASSO 1 (Raciocínio): Antes de dar a resposta final, observe com muita atenção a postura do animal, a posição dos olhos, a presença de tigelas/brinquedos e o ambiente. Pense nisso silenciosamente.
+
+    PASSO 2 (Classificação): Baseado na sua observação, classifique o comportamento.
     REGRA CRÍTICA: A primeira linha da sua resposta DEVE ser EXATAMENTE uma destas tags (sem markdown):
     [CATEGORIA: DESCANSO]
     [CATEGORIA: ALIMENTACAO]
     [CATEGORIA: ATIVIDADE]
 
-    Siga EXATAMENTE este formato de resposta:
+    PASSO 3 (Formato): Siga EXATAMENTE este formato de resposta:
     Linha 1: A tag da categoria (ex: [CATEGORIA: DESCANSO])
     Linha 2: Uma quebra de linha vazia.
     Linha 3: O diagnóstico (ex: Seu pet está relaxado e dormindo profundamente.)
@@ -59,14 +62,20 @@ exports.handler = async (event) => {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "qwen/qwen3.8-27b",
+        model: "llama-3.2-11b-vision-preview", // <-- NOVO MODELO DE VISÃO
         messages: [{ role: "user", content: content }],
-        temperature: 0.1
+        temperature: 0.1, // Mantém a IA focada e sem inventar coisas
+        max_tokens: 500
       })
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || "Erro na API da Groq");
+    
+    // Se a API da Groq der erro (ex: modelo não encontrado), mostramos no log
+    if (!response.ok) {
+        console.error("Erro na API da Groq:", data);
+        throw new Error(data.error?.message || "Erro na API da Groq");
+    }
 
     return {
       statusCode: 200,
