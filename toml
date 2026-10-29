@@ -1,9 +1,0 @@
-[build]
-  publish = "frontend"
-
-[dev]
-  publish = "frontend"
-
-[[edge_functions]]
-  path = "/admin"
-  function = "auth-admin"
