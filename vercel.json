@@ -1,6 +1,11 @@
 {
   "version": 2,
   "outputDirectory": "frontend",
+  "functions": {
+    "api/analisar.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
       "source": "/.netlify/functions/analisar",
