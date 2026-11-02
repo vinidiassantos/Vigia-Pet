@@ -12,48 +12,74 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: "Method Not Allowed" };
 
   try {
-    const { imageBase64, petInfo } = JSON.parse(event.body || "{}");
+    const { imagesBase64 } = JSON.parse(event.body || "{}");
     const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
-
-    // Personalização básica se houver dados do pet
-    const nomePet = petInfo?.name ? petInfo.name : "seu pet";
-    const racaPet = petInfo?.breed ? `(raça: ${petInfo.breed})` : "";
-
-    const promptSistema = `Você é um assistente veterinário especialista em comportamento animal do aplicativo Vigia Pet.
     
-    Sua tarefa é analisar a imagem de ${nomePet} ${racaPet} e classificá-lo.
+    if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
+    if (!imagesBase64 || imagesBase64.length === 0) throw new Error("Nenhuma imagem recebida.");
 
-    PASSO 1 (Raciocínio): Antes de dar a resposta final, observe com muita atenção a postura do animal, a posição dos olhos, a presença de tigelas/brinquedos e o ambiente. Pense nisso silenciosamente.
+    // Prompt poderoso: define o papel, o raciocínio e o formato JSON exato
+    const promptSistema = `Você é um especialista em comportamento animal e identificação de raças, atuando no aplicativo Vigia Pet.
+    Sua tarefa é analisar a sequência de imagens de um pet e retornar um JSON estritamente estruturado.
 
-    PASSO 2 (Classificação): Baseado na sua observação, classifique o comportamento.
-    REGRA CRÍTICA: A primeira linha da sua resposta DEVE ser EXATAMENTE uma destas tags (sem markdown):
-    [CATEGORIA: DESCANSO]
-    [CATEGORIA: ALIMENTACAO]
-    [CATEGORIA: ATIVIDADE]
+    PASSO 1 - RACIOCÍNIO: Olhe para as imagens. Qual é a espécie? (Cachorro ou Gato). Quais são as características físicas (pelo, orelhas, focinho, porte)? Qual é a postura e a ação do animal (deitado, comendo, correndo, brincando)?
+    PASSO 2 - IDENTIFICAÇÃO: Com base nas características, qual é a raça mais provável? (Se for vira-lata, use "SRD").
+    PASSO 3 - ANÁLISE COMPORTAMENTAL: O comportamento observado (ex: ficar deitado por muito tempo) é condizente com o esperado para essa raça? (Ex: Um Border Collie parado por muito tempo é atípico; um Bulldog dormindo é típico).
 
-    PASSO 3 (Formato): Siga EXATAMENTE este formato de resposta:
-    Linha 1: A tag da categoria (ex: [CATEGORIA: DESCANSO])
-    Linha 2: Uma quebra de linha vazia.
-    Linha 3: O diagnóstico (ex: Seu pet está relaxado e dormindo profundamente.)
-    Linha 4: Uma quebra de linha vazia.
-    Linha 5: - Dica prática 1
-    Linha 6: - Dica prática 2
-    Linha 7: - Dica prática 3
+    Retorne APENAS um objeto JSON válido, sem markdown, sem texto antes ou depois, com as seguintes chaves:
+    {
+      "especie": "Cachorro ou Gato",
+      "raca": "Nome da raça ou SRD",
+      "comportamento": "Descrição curta do que o pet está fazendo (ex: Dormindo, Comendo, Brincando)",
+      "analise_raca": "Explicação de 1 frase se o comportamento condiz com a raça.",
+      "dicas": [
+        "Dica 1 focada na raça e comportamento",
+        "Dica 2",
+        "Dica 3"
+      ],
+      "confianca": 85
+    }
 
-    Exemplos de classificação:
-    - Pet deitado, dormindo, olhos fechados: [CATEGORIA: DESCANSO]
-    - Pet comendo, bebendo, focinho na tigela: [CATEGORIA: ALIMENTACAO]
-    - Pet correndo, brincando, latindo: [CATEGORIA: ATIVIDADE]
+    Exemplo para um Border Collie correndo:
+    {
+      "especie": "Cachorro",
+      "raca": "Border Collie",
+      "comportamento": "Correndo e brincando ativamente",
+      "analise_raca": "O comportamento é totalmente condizente, pois Border Collies possuem energia altíssima e precisam gastar energia.",
+      "dicas": [
+        "Proporcione brincadeiras que gastem energia física e mental.",
+        "Evite deixá-lo muito tempo parado em apartamentos.",
+        "Faça treinos de obediência para focar a mente dele."
+      ],
+      "confianca": 95
+    }
+
+    Exemplo para um SRD dormindo:
+    {
+      "especie": "Cachorro",
+      "raca": "SRD",
+      "comportamento": "Deitado e relaxado",
+      "analise_raca": "Cães SRD têm comportamentos variados, mas o descanso é natural e saudável.",
+      "dicas": [
+        "Mantenha um local de descanso confortável e longe de barulho.",
+        "Observe se ele dorme mais que o normal, pois pode indicar tédio ou problemas de saúde.",
+        "Garanta que ele tenha feito suas necessidades antes de dormir."
+      ],
+      "confianca": 80
+    }
     `;
 
     const content = [{ type: "text", text: promptSistema }];
-    if (imageBase64) {
+    
+    // A Groq suporta até 3 imagens por requisição. Vamos garantir que não exceda.
+    const imagensParaEnviar = imagesBase64.slice(0, 3);
+    
+    imagensParaEnviar.forEach(base64 => {
       content.push({
         type: "image_url",
-        image_url: { url: `data:image/jpeg;base64,${imageBase64}` }
+        image_url: { url: `data:image/jpeg;base64,${base64}` }
       });
-    }
+    });
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -62,25 +88,26 @@ exports.handler = async (event) => {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "qwen/qwen3.8-27b", // <-- NOVO MODELO DE VISÃO
+        model: "qwen/qwen3.8-27b", 
         messages: [{ role: "user", content: content }],
-        temperature: 0.1, // Mantém a IA focada e sem inventar coisas
-        max_tokens: 500
+        temperature: 0.1, // Baixa temperatura para ser mais factual
+        max_tokens: 600,
+        response_format: { type: "json_object" } // FORÇA O MODO JSON
       })
     });
 
     const data = await response.json();
     
-    // Se a API da Groq der erro (ex: modelo não encontrado), mostramos no log
     if (!response.ok) {
         console.error("Erro na API da Groq:", data);
         throw new Error(data.error?.message || "Erro na API da Groq");
     }
 
+    // Retorna o JSON puro que a IA gerou
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ result: data.choices?.[0]?.message?.content })
+      body: data.choices?.[0]?.message?.content // Já é uma string JSON
     };
   } catch (error) {
     console.error("❌ Erro no Backend:", error);
