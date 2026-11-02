@@ -287,22 +287,21 @@ function salvarAvaliacao(tipo, comentario) {
         data: new Date().toISOString(),
     };
 
-    // 1. Salva localmente (como já fazia)
+    // 1. Salva no localStorage (histórico local do usuário)
     const feedbacks = JSON.parse(localStorage.getItem('vigiapet_feedbacks') || '[]');
     feedbacks.push(feedbackData);
     localStorage.setItem('vigiapet_feedbacks', JSON.stringify(feedbacks));
 
-    // 2. Envia para o backend (Netlify Function → Netlify Blobs)
+    // 2. Envia para o servidor (Painel Admin)
     fetch('/.netlify/functions/salvar-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(feedbackData),
     }).catch((err) => {
-        // Falha silenciosa: não quebra a UX se o envio remoto falhar
         console.warn('Não foi possível enviar o feedback para o servidor:', err);
     });
 
-    // 3. Atualiza a UI
+    // 3. Atualiza a tela
     feedbackButtons.style.display = 'none';
     feedbackCommentBox.style.display = 'none';
     feedbackThanks.style.display = 'block';
