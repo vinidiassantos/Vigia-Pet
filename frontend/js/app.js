@@ -9,7 +9,8 @@ const controlsRow = document.getElementById('controlsRow');
 const timerOverlay = document.getElementById('timerOverlay');
 const timerDisplay = document.getElementById('timerDisplay');
 const behaviorText = document.getElementById('behaviorText');
-const iaList = document.getElementById('iaList');
+const iaContent = document.getElementById('iaContent'); // Atualizado
+const iaPlaceholder = document.getElementById('iaPlaceholder'); // Atualizado
 const iaCategoryBadge = document.getElementById('iaCategoryBadge');
 const iaRacaBadge = document.getElementById('iaRacaBadge'); 
 const historyBtn = document.getElementById('historyBtn');
@@ -138,7 +139,12 @@ vigiarBtn.addEventListener('click', () => {
     controlsRow.style.display = 'grid';
     timerOverlay.style.display = 'flex';
     behaviorText.textContent = "GRAVANDO VÍDEO";
-    iaList.innerHTML = '<li class="ia-item placeholder">Analisando raça e comportamento...</li>';
+    
+    // Limpa os blocos anteriores e mostra o placeholder
+    iaContent.innerHTML = '';
+    iaPlaceholder.style.display = 'block';
+    iaPlaceholder.textContent = "Analisando raça e comportamento...";
+    
     iaCategoryBadge.style.display = 'none';
     iaRacaBadge.style.display = 'none';
     updateTimerDisplay();
@@ -219,36 +225,29 @@ async function finalizarGravacao() {
 }
 
 // ==========================================
-// PROCESSAR RESPOSTA COM PARSER RESILIENTE
+// PROCESSAR RESPOSTA (MONTAGEM DOS BLOCOS)
 // ==========================================
 function processarRespostaIA(jsonString, segundos) {
     let analise;
     
     try {
-        // 1. Tenta ler o JSON diretamente
         analise = JSON.parse(jsonString);
     } catch (e1) {
-        console.warn("JSON.parse falhou. Tentando limpar a string...", jsonString);
         try {
-            // 2. Parser Resiliente: Remove markdown e extrai do primeiro { ao último }
             let cleanJson = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
             const start = cleanJson.indexOf('{');
             const end = cleanJson.lastIndexOf('}');
-            
-            if (start !== -1 && end !== -1) {
-                cleanJson = cleanJson.substring(start, end + 1);
-            }
-            
+            if (start !== -1 && end !== -1) cleanJson = cleanJson.substring(start, end + 1);
             analise = JSON.parse(cleanJson);
         } catch (e2) {
-            console.error("Falha crítica ao ler o JSON:", jsonString);
             alert("A IA retornou um formato inválido. Tente novamente.");
             behaviorText.textContent = "ERRO NA IA";
+            iaPlaceholder.textContent = "Não foi possível ler a resposta da IA.";
             return;
         }
     }
 
-    // Se chegou aqui, o JSON é válido e a variável `analise` tem os dados
+    // Categoriza para as estatísticas
     const comportamentoLower = (analise.comportamento || "").toLowerCase();
     if (comportamentoLower.includes("dorm") || comportamentoLower.includes("deitad") || comportamentoLower.includes("descans")) {
         currentCategory = "descanco";
@@ -264,39 +263,74 @@ function processarRespostaIA(jsonString, segundos) {
     if (currentCategory === "atividade" && segundos >= 8 && !alertTriggered) {
         alertTriggered = true;
         setTimeout(() => {
-            alert("⚠️ ALERTA DE SAÚDE: Seu pet está muito agitado por um longo período. Considere verificar se ele precisa de água ou passear!");
+            alert("⚠️ ALERTA DE SAÚDE: Seu pet está muito agitado por um longo período.");
         }, 1000);
     }
 
     behaviorText.textContent = "CONCLUÍDO";
     
+    // Atualiza Badges
     iaCategoryBadge.style.display = 'inline-block';
     iaCategoryBadge.textContent = currentCategory.toUpperCase();
     iaCategoryBadge.className = `ia-badge ${currentCategory === 'descanco' ? 'sleep' : currentCategory === 'alimentacao' ? 'eat' : 'active'}`;
 
     iaRacaBadge.style.display = 'inline-block';
-    iaRacaBadge.textContent = `${analise.especie || 'Pet'} · ${analise.raca || 'SRD'}`;
+    iaRacaBadge.textContent = analise.raca || 'SRD';
 
-    iaList.innerHTML = '';
-    
-    const liComportamento = document.createElement('li');
-    liComportamento.className = 'ia-item diagnostico';
-    liComportamento.innerHTML = `<span class="texto-destaque">Comportamento: ${analise.comportamento}</span>`;
-    iaList.appendChild(liComportamento);
+    // --- INÍCIO DA MONTAGEM DOS BLOCOS NO FRONTEND ---
+    iaPlaceholder.style.display = 'none';
+    iaContent.innerHTML = ''; // Limpa a tela
 
-    const liAnalise = document.createElement('li');
-    liAnalise.className = 'ia-item diagnostico';
-    liAnalise.style.color = '#EA580C'; 
-    liAnalise.innerHTML = `<span class="texto-destaque">Análise da Raça: ${analise.analise_raca}</span>`;
-    iaList.appendChild(liAnalise);
+    // Bloco 1: Espécie e Detalhes
+    const blocoEspecie = document.createElement('div');
+    blocoEspecie.className = 'ia-block';
+    blocoEspecie.innerHTML = `
+        <div class="ia-block-title">🐾 Identificação</div>
+        <div class="ia-block-content">
+            <p><strong>Espécie:</strong> ${analise.especie || 'Não identificada'}</p>
+            <p><strong>Raça:</strong> ${analise.raca || 'SRD'}</p>
+        </div>
+    `;
+    iaContent.appendChild(blocoEspecie);
 
+    // Bloco 2: Comportamento
+    const blocoComportamento = document.createElement('div');
+    blocoComportamento.className = 'ia-block';
+    blocoComportamento.innerHTML = `
+        <div class="ia-block-title">👀 O que ele está fazendo</div>
+        <div class="ia-block-content">
+            <p>${analise.comportamento || 'Comportamento não detalhado.'}</p>
+        </div>
+    `;
+    iaContent.appendChild(blocoComportamento);
+
+    // Bloco 3: Análise da Raça
+    const blocoAnalise = document.createElement('div');
+    blocoAnalise.className = 'ia-block';
+    blocoAnalise.innerHTML = `
+        <div class="ia-block-title">⚖️ Análise Cruzada (Raça x Comportamento)</div>
+        <div class="ia-block-content">
+            <p>${analise.analise_raca || 'Análise de raça não detalhada.'}</p>
+        </div>
+    `;
+    iaContent.appendChild(blocoAnalise);
+
+    // Bloco 4: Dicas (Bullets)
     if (analise.dicas && analise.dicas.length > 0) {
-        analise.dicas.forEach((dica, index) => {
-            const li = document.createElement('li');
-            li.className = 'ia-item';
-            li.innerHTML = `<span class="emoji">${['💡', '🦴', '🎾'][index % 3]}</span> <span class="texto">${dica}</span>`;
-            iaList.appendChild(li);
-        });
+        const blocoDicas = document.createElement('div');
+        blocoDicas.className = 'ia-block';
+        
+        let dicasHtml = analise.dicas.map(dica => `<li>${dica}</li>`).join('');
+        
+        blocoDicas.innerHTML = `
+            <div class="ia-block-title">💡 Dicas de Cuidado</div>
+            <div class="ia-block-content">
+                <ul class="ia-tips-list">
+                    ${dicasHtml}
+                </ul>
+            </div>
+        `;
+        iaContent.appendChild(blocoDicas);
     }
 
     salvarHistorico(jsonString, currentCategory, segundos);
@@ -344,7 +378,7 @@ function salvarAvaliacao(tipo, comentario) {
 }
 
 // ==========================================
-// RELATÓRIO PARA O VETERINÁRIO
+// RELATÓRIO PARA O VETERINÁRIO (DOWNLOAD TXT)
 // ==========================================
 vetReportBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -385,7 +419,7 @@ vetReportBtn.addEventListener('click', (e) => {
 });
 
 // ==========================================
-// WHATSAPP E HISTÓRICO
+// WHATSAPP E HISTÓRICO (MODAL)
 // ==========================================
 whatsappBtn.addEventListener('click', () => {
     if (!lastAIResult) { alert("Faça uma análise primeiro!"); return; }

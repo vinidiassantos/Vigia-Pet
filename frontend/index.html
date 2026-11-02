@@ -106,18 +106,22 @@
             </div>
         </div>
 
-                   <!-- Conclusão da IA -->
+                    <!-- Conclusão da IA -->
         <div class="ia-respostas" id="iaRespostasContainer">
             <div class="ia-header">
-                <h3>CONCLUSÃO</h3>
+                <h3>DIAGNÓSTICO VIGIA PET</h3>
                 <div style="display: flex; gap: 8px;">
                     <span class="ia-badge" id="iaRacaBadge" style="display: none; background: #E2E8F0; color: #0F172A;">ESPÉCIE / RAÇA</span>
                     <span class="ia-badge" id="iaCategoryBadge" style="display: none;">ANÁLISE</span>
                 </div>
             </div>
-            <ul id="iaList">
-                <li class="ia-item placeholder">Aguardando início da vigília...</li>
-            </ul>
+            
+            <!-- Container onde os blocos serão injetados pelo JS -->
+            <div id="iaContent" class="ia-content">
+                <div class="ia-placeholder" id="iaPlaceholder">
+                    Aguardando início da vigília...
+                </div>
+            </div>
         </div>
 
                <!-- Feedback do Cliente -->
