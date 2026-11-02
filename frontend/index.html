@@ -7,7 +7,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
@@ -52,9 +52,13 @@
 
     <div id="app">
         <header>
-            <!-- LOGO USANDO A IMAGEM -->
+            <!-- LOGO RECRIADO EM CÓDIGO (Transparente e Nítido) -->
             <div class="logo">
-                <img src="./logo_vigiapet_transparente.jpg" alt="Vigia Pet" class="logo-img">
+                <span class="logo-text">VIGIA PET</span>
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <!-- Desenho vetorial de um cachorro sentado -->
+                    <path d="M18.5,10.5c-0.8,0-1.5,0.7-1.5,1.5v4h-2v-2.5c0-0.3-0.2-0.5-0.5-0.5h-1c-0.3,0-0.5,0.2-0.5,0.5v2.5H10v-1.5 c0-0.6-0.4-1-1-1H8c-0.6,0-1,0.4-1,1v1.5H5c-1.1,0-2-0.9-2-2v-2c0-1.1,0.9-2,2-2h1V9c0-0.6,0.4-1,1-1h1V6.5 C8,5.7,7.3,5,6.5,5S5,5.7,5,6.5S5.7,8,6.5,8c0.2,0,0.4,0,0.5-0.1v1.2C6.5,9.3,6,9.8,6,10.5V11H5c-2.2,0-4,1.8-4,4v2 c0,2.2,1.8,4,4,4h7v-1h2v1h4c2.2,0,4-1.8,4-4v-5C22,11.2,20.4,10.5,18.5,10.5z M8,8c-0.3,0-0.5-0.2-0.5-0.5S7.7,7,8,7 s0.5,0.2,0.5,0.5S8.3,8,8,8z M16.5,6c-0.8,0-1.5,0.7-1.5,1.5s0.7,1.5,1.5,1.5s1.5-0.7,1.5-1.5S17.3,6,16.5,6z"/>
+                </svg>
             </div>
             <div class="status" id="connectionStatus">
                 <span class="status-dot"></span> ONLINE

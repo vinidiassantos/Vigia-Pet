@@ -38,7 +38,7 @@ body {
     overflow-y: auto;
 }
 
-/* HEADER E LOGO */
+/* HEADER E LOGO RECRIADO */
 header {
     display: flex;
     justify-content: space-between;
@@ -50,14 +50,21 @@ header {
 .logo {
     display: flex;
     align-items: center;
+    gap: 4px;
+    color: #1E293B; /* Cor do texto do logo */
 }
 
-/* O mix-blend-mode ajuda a sumir com fundos brancos de JPG */
-.logo-img {
-    height: 40px; 
-    width: auto;
-    object-fit: contain;
-    mix-blend-mode: multiply; 
+.logo-text {
+    font-family: 'Nunito', sans-serif; /* Fonte idêntica à do resto do app */
+    font-size: 28px; /* Aumentado */
+    font-weight: 900;
+    letter-spacing: -0.5px;
+}
+
+.logo-icon {
+    width: 32px; /* Aumentado */
+    height: 32px;
+    margin-top: 2px; /* Alinha o cachorro com a base do texto */
 }
 
 .status {
