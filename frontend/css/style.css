@@ -52,12 +52,12 @@ header {
     align-items: center;
 }
 
-/* O mix-blend-mode: multiply faz o fundo branco do JPG sumir! */
+/* O mix-blend-mode ajuda a sumir com fundos brancos de JPG */
 .logo-img {
     height: 40px; 
     width: auto;
     object-fit: contain;
-    mix-blend-mode: multiply;
+    mix-blend-mode: multiply; 
 }
 
 .status {
