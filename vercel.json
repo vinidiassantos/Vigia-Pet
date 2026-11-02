@@ -1,6 +1,15 @@
 {
   "version": 2,
-  "outputDirectory": "frontend",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
+    }
+  ],
   "functions": {
     "api/analisar.js": {
       "maxDuration": 60
