@@ -1,4 +1,8 @@
 // api/analisar.js
+
+// Exportação correta para o Vercel definir o tempo limite
+export const maxDuration = 60; 
+
 export default async function handler(req, res) {
   // Configuração de CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -10,11 +14,10 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   try {
-    // O Vercel já faz o parse do JSON automaticamente no req.body
     const { imagesBase64 } = req.body || {};
     const apiKey = process.env.GROQ_API_KEY;
 
-    if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
+    if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada no Vercel.");
     if (!imagesBase64 || imagesBase64.length === 0) throw new Error("Nenhuma imagem recebida.");
 
     const promptSistema = `Você é um especialista em comportamento animal e identificação de raças, atuando no aplicativo Vigia Pet.
@@ -48,51 +51,62 @@ export default async function handler(req, res) {
       });
     });
 
-    // Mantendo o seu modelo original que funcionava no Netlify
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "qwen/qwen3.8-27b", 
-        messages: [{ role: "user", content: content }],
-        temperature: 0.1,
-        max_tokens: 600,
-        response_format: { type: "json_object" }
-      })
-    });
+    // Configura o cancelamento automático se a Groq demorar mais de 55 segundos
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000);
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error?.message || "Erro na API da Groq");
-    }
-
-    let resultadoTexto = data.choices?.[0]?.message?.content || "{}";
-
-    // --- LIMPEZA EXTRA (GARANTIA) ---
-    resultadoTexto = resultadoTexto.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const inicioJson = resultadoTexto.indexOf('{');
-    const fimJson = resultadoTexto.lastIndexOf('}');
-    
-    if (inicioJson !== -1 && fimJson !== -1) {
-      resultadoTexto = resultadoTexto.substring(inicioJson, fimJson + 1);
-    }
-
-    // Valida se o JSON é perfeitamente parseável
     try {
-      JSON.parse(resultadoTexto);
-    } catch (e) {
-      console.error("JSON inválido gerado pela IA:", resultadoTexto);
-      throw new Error("A IA gerou um formato inválido. Tente novamente.");
-    }
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "qwen/qwen3.8-27b", // Seu modelo original
+          messages: [{ role: "user", content: content }],
+          temperature: 0.1,
+          max_tokens: 600,
+          response_format: { type: "json_object" }
+        }),
+        signal: controller.signal
+      });
 
-    return res.status(200).json({ result: resultadoTexto });
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Se a Groq der erro (401, 429, etc.), repassa a mensagem exata
+        throw new Error(data.error?.message || "Erro na API da Groq");
+      }
+
+      let resultadoTexto = data.choices?.[0]?.message?.content || "{}";
+
+      // --- LIMPEZA EXTRA (GARANTIA) ---
+      resultadoTexto = resultadoTexto.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const inicioJson = resultadoTexto.indexOf('{');
+      const fimJson = resultadoTexto.lastIndexOf('}');
+      
+      if (inicioJson !== -1 && fimJson !== -1) {
+        resultadoTexto = resultadoTexto.substring(inicioJson, fimJson + 1);
+      }
+
+      // Valida se o JSON é perfeitamente parseável
+      try {
+        JSON.parse(resultadoTexto);
+      } catch (e) {
+        console.error("JSON inválido gerado pela IA:", resultadoTexto);
+        throw new Error("A IA gerou um formato inválido. Tente novamente.");
+      }
+
+      return res.status(200).json({ result: resultadoTexto });
+
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
   } catch (error) {
     console.error("❌ Erro no Backend:", error);
+    // Retorna erro em JSON para o frontend não quebrar no JSON.parse
     return res.status(500).json({ error: error.message });
   }
 }
