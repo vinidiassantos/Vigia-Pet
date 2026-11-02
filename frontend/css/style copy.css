@@ -38,7 +38,7 @@ body {
     overflow-y: auto;
 }
 
-/* HEADER */
+/* HEADER E LOGO */
 header {
     display: flex;
     justify-content: space-between;
@@ -49,27 +49,15 @@ header {
 
 .logo {
     display: flex;
-    align-items: flex-start;
-    font-size: 24px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: var(--primary-color);
-}
-
-.logo-t {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    position: relative;
-    margin-left: 2px;
 }
 
-.logo-rays {
-    width: 16px;
-    height: 16px;
-    position: absolute;
-    top: -14px;
-    color: var(--primary-color);
+/* Ajuste do tamanho do logo único */
+.logo-img {
+    height: 36px; 
+    width: auto;
+    object-fit: contain;
+    mix-blend-mode: multiply; /* Faz o fundo claro da imagem sumir */
 }
 
 .status {
@@ -156,7 +144,6 @@ header {
 .ia-respostas {
     background: #FFFDFB; border: 2px solid var(--accent-color);
     border-radius: 20px; padding: 20px; margin-bottom: 16px;
-    /* Expandimos o tamanho para ser o destaque da tela */
     min-height: 250px; max-height: 60vh; overflow-y: auto; 
     box-shadow: 0 8px 30px rgba(249, 115, 22, 0.1); flex-grow: 1; 
 }
@@ -175,7 +162,6 @@ header {
 .ia-badge.eat { background: rgba(249, 115, 22, 0.1); color: var(--accent-dark); }
 .ia-badge.active { background: rgba(59, 130, 246, 0.15); color: #2563EB; }
 
-/* Novos estilos para os blocos de conteúdo */
 .ia-content {
     display: flex;
     flex-direction: column;

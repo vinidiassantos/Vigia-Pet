@@ -49,15 +49,23 @@ header {
 
 .logo {
     display: flex;
-    align-items: center;
+    align-items: flex-end; /* Alinha a base do cachorro com a base do texto */
+    color: #1E293B;
 }
 
-/* Ajuste do tamanho do logo único */
-.logo-img {
-    height: 36px; 
-    width: auto;
-    object-fit: contain;
-    mix-blend-mode: multiply; /* Faz o fundo claro da imagem sumir */
+.logo-text {
+    font-family: 'Montserrat', sans-serif; /* Fonte idêntica à imagem */
+    font-size: 26px; 
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    line-height: 0.8;
+}
+
+.logo-dog {
+    width: 34px; 
+    height: 34px;
+    margin-left: 4px;
+    margin-bottom: -3px; /* Ajuste fino para encostar a pata na linha do texto */
 }
 
 .status {
