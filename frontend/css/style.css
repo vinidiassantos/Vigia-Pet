@@ -47,25 +47,21 @@ header {
     flex-shrink: 0;
 }
 
+/* Caixa branca do logo compacta */
 .logo {
     display: flex;
-    align-items: flex-end; /* Alinha a base do cachorro com a base do texto */
-    color: #1E293B;
+    align-items: center;
+    background-color: #FFFFFF;
+    padding: 6px 12px; 
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.05);
 }
 
-.logo-text {
-    font-family: 'Montserrat', sans-serif; /* Fonte idêntica à imagem */
-    font-size: 26px; 
-    font-weight: 900;
-    letter-spacing: -0.5px;
-    line-height: 0.8;
-}
-
-.logo-dog {
-    width: 34px; 
-    height: 34px;
-    margin-left: 4px;
-    margin-bottom: -3px; /* Ajuste fino para encostar a pata na linha do texto */
+/* Tamanho reduzido do logo */
+.logo-img {
+    height: 38px; /* Reduzido de 80px para 38px */
+    width: auto;
+    object-fit: contain;
 }
 
 .status {
