@@ -1,20 +1,21 @@
-// netlify/functions/analisar.js
+// api/analisar.js
 require("dotenv").config();
 
-exports.handler = async (event) => {
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS"
-  };
+export default async function handler(req, res) {
+  // Configuração de CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 
-  if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers, body: "OK" };
-  if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: "Method Not Allowed" };
+  // Trata requisições preflight (OPTIONS)
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   try {
-    const { imagesBase64 } = JSON.parse(event.body || "{}");
+    // O Vercel já faz o parse do JSON automaticamente no req.body
+    const { imagesBase64 } = req.body || {};
     const apiKey = process.env.GROQ_API_KEY;
-    
+
     if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
     if (!imagesBase64 || imagesBase64.length === 0) throw new Error("Nenhuma imagem recebida.");
 
@@ -41,7 +42,7 @@ exports.handler = async (event) => {
 
     const content = [{ type: "text", text: promptSistema }];
     const imagensParaEnviar = imagesBase64.slice(0, 3);
-    
+
     imagensParaEnviar.forEach(base64 => {
       content.push({
         type: "image_url",
@@ -49,57 +50,60 @@ exports.handler = async (event) => {
       });
     });
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "qwen/qwen3.8-27b", 
-        messages: [{ role: "user", content: content }],
-        temperature: 0.1,
-        max_tokens: 600,
-        response_format: { type: "json_object" }
-      })
-    });
+    // Configura o cancelamento automático se demorar mais de 55 segundos
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000);
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-        throw new Error(data.error?.message || "Erro na API da Groq");
-    }
-
-    let resultadoTexto = data.choices?.[0]?.message?.content || "{}";
-
-    // --- LIMPEZA EXTRA (GARANTIA) ---
-    // Remove blocos de código markdown (```json ... ```) se a IA teimar em colocar
-    resultadoTexto = resultadoTexto.replace(/```json/gi, '').replace(/```/g, '').trim();
-    
-    // Extrai apenas o conteúdo entre a primeira chave { e a última }
-    const inicioJson = resultadoTexto.indexOf('{');
-    const fimJson = resultadoTexto.lastIndexOf('}');
-    
-    if (inicioJson !== -1 && fimJson !== -1) {
-        resultadoTexto = resultadoTexto.substring(inicioJson, fimJson + 1);
-    }
-
-    // Valida se o JSON é perfeitamente parseável
     try {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.2-11b-vision-preview", // Modelo de Visão Correto da Groq
+          messages: [{ role: "user", content: content }],
+          temperature: 0.1,
+          max_tokens: 600,
+          response_format: { type: "json_object" }
+        }),
+        signal: controller.signal
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Erro na API da Groq");
+      }
+
+      let resultadoTexto = data.choices?.[0]?.message?.content || "{}";
+
+      // --- LIMPEZA EXTRA (GARANTIA) ---
+      resultadoTexto = resultadoTexto.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const inicioJson = resultadoTexto.indexOf('{');
+      const fimJson = resultadoTexto.lastIndexOf('}');
+      
+      if (inicioJson !== -1 && fimJson !== -1) {
+        resultadoTexto = resultadoTexto.substring(inicioJson, fimJson + 1);
+      }
+
+      // Valida se o JSON é perfeitamente parseável
+      try {
         JSON.parse(resultadoTexto);
-    } catch (e) {
+      } catch (e) {
         console.error("JSON inválido gerado pela IA:", resultadoTexto);
         throw new Error("A IA gerou um formato inválido. Tente novamente.");
-    }
+      }
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ result: resultadoTexto })
-    };
+      return res.status(200).json({ result: resultadoTexto });
+
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
   } catch (error) {
     console.error("❌ Erro no Backend:", error);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
+    return res.status(500).json({ error: error.message });
   }
-};
+}
