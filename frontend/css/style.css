@@ -49,22 +49,24 @@ header {
 
 .logo {
     display: flex;
-    align-items: center;
-    gap: 4px;
+    align-items: flex-end; /* Alinha a base do cachorro com a base do texto */
     color: #1E293B; /* Cor do texto do logo */
+    padding-bottom: 2px;
 }
 
 .logo-text {
-    font-family: 'Nunito', sans-serif; /* Fonte idêntica à do resto do app */
-    font-size: 28px; /* Aumentado */
+    font-family: 'Nunito', sans-serif; 
+    font-size: 28px; 
     font-weight: 900;
     letter-spacing: -0.5px;
+    line-height: 0.8; /* Diminui a caixa invisível ao redor do texto */
 }
 
 .logo-icon {
-    width: 32px; /* Aumentado */
-    height: 32px;
-    margin-top: 2px; /* Alinha o cachorro com a base do texto */
+    width: 34px; /* Aumentado para dar mais destaque */
+    height: 34px;
+    margin-left: 4px; /* Pequeno espaço após a letra T */
+    margin-bottom: -3px; /* Ajuste fino para descer o cachorro até a linha do texto */
 }
 
 .status {
