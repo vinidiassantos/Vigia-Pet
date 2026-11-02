@@ -155,15 +155,16 @@ header {
 /* CONCLUSÃO DA IA */
 .ia-respostas {
     background: #FFFDFB; border: 2px solid var(--accent-color);
-    border-radius: 20px; padding: 16px; margin-bottom: 16px;
-    min-height: 140px; max-height: 300px; overflow-y: auto; 
+    border-radius: 20px; padding: 20px; margin-bottom: 16px;
+    /* Expandimos o tamanho para ser o destaque da tela */
+    min-height: 250px; max-height: 60vh; overflow-y: auto; 
     box-shadow: 0 8px 30px rgba(249, 115, 22, 0.1); flex-grow: 1; 
 }
 .ia-header { 
     display: flex; justify-content: space-between; align-items: center; 
-    margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(249, 115, 22, 0.2);
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(249, 115, 22, 0.2);
 }
-.ia-respostas h3 { font-size: 13px; color: var(--accent-dark); font-weight: 800; letter-spacing: 1px; }
+.ia-respostas h3 { font-size: 14px; color: var(--accent-dark); font-weight: 800; letter-spacing: 1px; }
 
 .ia-badge {
     font-size: 10px; padding: 4px 10px; border-radius: 6px;
@@ -174,16 +175,65 @@ header {
 .ia-badge.eat { background: rgba(249, 115, 22, 0.1); color: var(--accent-dark); }
 .ia-badge.active { background: rgba(59, 130, 246, 0.15); color: #2563EB; }
 
-.ia-respostas ul { list-style: none; padding: 0; margin: 0; }
-.ia-item {
-    display: flex; align-items: flex-start; gap: 8px;
-    padding: 10px 0; border-bottom: 1px dashed rgba(249, 115, 22, 0.2);
-    font-size: 13px; color: var(--text-main); line-height: 1.5; word-break: break-word;
+/* Novos estilos para os blocos de conteúdo */
+.ia-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
-.ia-item:last-child { border-bottom: none; }
-.ia-item .emoji { font-size: 16px; }
-.ia-item.placeholder { color: var(--text-muted); font-style: italic; border: none; }
-.ia-item.diagnostico { display: block; font-weight: 600; color: var(--primary-color); border-bottom: none; padding-bottom: 4px; font-size: 14px; }
+
+.ia-block {
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.ia-block-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--accent-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ia-block-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-main);
+}
+
+.ia-block-content p {
+    margin-bottom: 6px;
+}
+
+.ia-tips-list {
+    padding-left: 20px;
+    margin-top: 4px;
+}
+
+.ia-tips-list li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+    padding-left: 4px;
+}
+
+.ia-tips-list li::marker {
+    color: var(--accent-color);
+    font-size: 1.2em;
+}
+
+.ia-placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 30px 0;
+}
 
 /* FEEDBACK */
 .feedback-container {
