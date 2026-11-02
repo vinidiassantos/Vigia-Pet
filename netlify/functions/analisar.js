@@ -18,7 +18,6 @@ exports.handler = async (event) => {
     if (!apiKey) throw new Error("Variável GROQ_API_KEY não configurada.");
     if (!imagesBase64 || imagesBase64.length === 0) throw new Error("Nenhuma imagem recebida.");
 
-    // Prompt poderoso: define o papel, o raciocínio e o formato JSON exato
     const promptSistema = `Você é um especialista em comportamento animal e identificação de raças, atuando no aplicativo Vigia Pet.
     Sua tarefa é analisar a sequência de imagens de um pet e retornar um JSON estritamente estruturado.
 
@@ -30,48 +29,17 @@ exports.handler = async (event) => {
     {
       "especie": "Cachorro ou Gato",
       "raca": "Nome da raça ou SRD",
-      "comportamento": "Descrição curta do que o pet está fazendo (ex: Dormindo, Comendo, Brincando)",
+      "comportamento": "Descrição curta do que o pet está fazendo",
       "analise_raca": "Explicação de 1 frase se o comportamento condiz com a raça.",
       "dicas": [
-        "Dica 1 focada na raça e comportamento",
+        "Dica 1",
         "Dica 2",
         "Dica 3"
       ],
       "confianca": 85
-    }
-
-    Exemplo para um Border Collie correndo:
-    {
-      "especie": "Cachorro",
-      "raca": "Border Collie",
-      "comportamento": "Correndo e brincando ativamente",
-      "analise_raca": "O comportamento é totalmente condizente, pois Border Collies possuem energia altíssima e precisam gastar energia.",
-      "dicas": [
-        "Proporcione brincadeiras que gastem energia física e mental.",
-        "Evite deixá-lo muito tempo parado em apartamentos.",
-        "Faça treinos de obediência para focar a mente dele."
-      ],
-      "confianca": 95
-    }
-
-    Exemplo para um SRD dormindo:
-    {
-      "especie": "Cachorro",
-      "raca": "SRD",
-      "comportamento": "Deitado e relaxado",
-      "analise_raca": "Cães SRD têm comportamentos variados, mas o descanso é natural e saudável.",
-      "dicas": [
-        "Mantenha um local de descanso confortável e longe de barulho.",
-        "Observe se ele dorme mais que o normal, pois pode indicar tédio ou problemas de saúde.",
-        "Garanta que ele tenha feito suas necessidades antes de dormir."
-      ],
-      "confianca": 80
-    }
-    `;
+    }`;
 
     const content = [{ type: "text", text: promptSistema }];
-    
-    // A Groq suporta até 3 imagens por requisição. Vamos garantir que não exceda.
     const imagensParaEnviar = imagesBase64.slice(0, 3);
     
     imagensParaEnviar.forEach(base64 => {
@@ -90,25 +58,46 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         model: "qwen/qwen3.8-27b", 
         messages: [{ role: "user", content: content }],
-        temperature: 0.1, // Baixa temperatura para ser mais factual
+        temperature: 0.1,
         max_tokens: 600,
-        response_format: { type: "json_object" } // FORÇA O MODO JSON
+        response_format: { type: "json_object" }
       })
     });
 
     const data = await response.json();
     
     if (!response.ok) {
-        console.error("Erro na API da Groq:", data);
         throw new Error(data.error?.message || "Erro na API da Groq");
     }
 
-    // Retorna o JSON puro que a IA gerou
+    let resultadoTexto = data.choices?.[0]?.message?.content || "{}";
+
+    // --- LIMPEZA EXTRA (GARANTIA) ---
+    // Remove blocos de código markdown (```json ... ```) se a IA teimar em colocar
+    resultadoTexto = resultadoTexto.replace(/```json/gi, '').replace(/```/g, '').trim();
+    
+    // Extrai apenas o conteúdo entre a primeira chave { e a última }
+    const inicioJson = resultadoTexto.indexOf('{');
+    const fimJson = resultadoTexto.lastIndexOf('}');
+    
+    if (inicioJson !== -1 && fimJson !== -1) {
+        resultadoTexto = resultadoTexto.substring(inicioJson, fimJson + 1);
+    }
+
+    // Valida se o JSON é perfeitamente parseável
+    try {
+        JSON.parse(resultadoTexto);
+    } catch (e) {
+        console.error("JSON inválido gerado pela IA:", resultadoTexto);
+        throw new Error("A IA gerou um formato inválido. Tente novamente.");
+    }
+
     return {
       statusCode: 200,
       headers,
-      body: data.choices?.[0]?.message?.content // Já é uma string JSON
+      body: JSON.stringify({ result: resultadoTexto })
     };
+
   } catch (error) {
     console.error("❌ Erro no Backend:", error);
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };

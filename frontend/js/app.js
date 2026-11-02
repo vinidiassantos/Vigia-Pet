@@ -11,7 +11,7 @@ const timerDisplay = document.getElementById('timerDisplay');
 const behaviorText = document.getElementById('behaviorText');
 const iaList = document.getElementById('iaList');
 const iaCategoryBadge = document.getElementById('iaCategoryBadge');
-const iaRacaBadge = document.getElementById('iaRacaBadge'); // Adicionado
+const iaRacaBadge = document.getElementById('iaRacaBadge'); 
 const historyBtn = document.getElementById('historyBtn');
 const whatsappBtn = document.getElementById('whatsappBtn');
 const historyModal = document.getElementById('historyModal');
@@ -40,7 +40,7 @@ let isRecording = false;
 let isPaused = false;
 let timeLeft = 10; 
 let timerInterval = null;
-let lastAIResult = ""; // Vai guardar o JSON stringificado
+let lastAIResult = ""; 
 let currentCategory = "atividade";
 let alertTriggered = false;
 let framesColetados = []; 
@@ -206,7 +206,7 @@ async function finalizarGravacao() {
         try { data = JSON.parse(text); } catch (e) { throw new Error("Tempo esgotado. Tente novamente."); }
         if (!response.ok) throw new Error(data.error || "Erro desconhecido");
 
-        lastAIResult = data.result; // Agora é uma string JSON
+        lastAIResult = data.result; 
         processarRespostaIA(data.result, tempoGravado);
 
     } catch (error) {
@@ -219,19 +219,36 @@ async function finalizarGravacao() {
 }
 
 // ==========================================
-// PROCESSAR RESPOSTA JSON E ALERTAS
+// PROCESSAR RESPOSTA COM PARSER RESILIENTE
 // ==========================================
 function processarRespostaIA(jsonString, segundos) {
     let analise;
+    
     try {
+        // 1. Tenta ler o JSON diretamente
         analise = JSON.parse(jsonString);
-    } catch (e) {
-        console.error("JSON inválido retornado pela IA:", jsonString);
-        alert("A IA retornou um formato inválido. Tente novamente.");
-        return;
+    } catch (e1) {
+        console.warn("JSON.parse falhou. Tentando limpar a string...", jsonString);
+        try {
+            // 2. Parser Resiliente: Remove markdown e extrai do primeiro { ao último }
+            let cleanJson = jsonString.replace(/```json/g, '').replace(/```/g, '').trim();
+            const start = cleanJson.indexOf('{');
+            const end = cleanJson.lastIndexOf('}');
+            
+            if (start !== -1 && end !== -1) {
+                cleanJson = cleanJson.substring(start, end + 1);
+            }
+            
+            analise = JSON.parse(cleanJson);
+        } catch (e2) {
+            console.error("Falha crítica ao ler o JSON:", jsonString);
+            alert("A IA retornou um formato inválido. Tente novamente.");
+            behaviorText.textContent = "ERRO NA IA";
+            return;
+        }
     }
 
-    // Mapeia a categoria para as estatísticas
+    // Se chegou aqui, o JSON é válido e a variável `analise` tem os dados
     const comportamentoLower = (analise.comportamento || "").toLowerCase();
     if (comportamentoLower.includes("dorm") || comportamentoLower.includes("deitad") || comportamentoLower.includes("descans")) {
         currentCategory = "descanco";
@@ -244,7 +261,6 @@ function processarRespostaIA(jsonString, segundos) {
     stats[currentCategory] += segundos;
     updateStatsUI();
 
-    // Alerta de Saúde
     if (currentCategory === "atividade" && segundos >= 8 && !alertTriggered) {
         alertTriggered = true;
         setTimeout(() => {
@@ -254,7 +270,6 @@ function processarRespostaIA(jsonString, segundos) {
 
     behaviorText.textContent = "CONCLUÍDO";
     
-    // Atualiza os Badges
     iaCategoryBadge.style.display = 'inline-block';
     iaCategoryBadge.textContent = currentCategory.toUpperCase();
     iaCategoryBadge.className = `ia-badge ${currentCategory === 'descanco' ? 'sleep' : currentCategory === 'alimentacao' ? 'eat' : 'active'}`;
@@ -262,23 +277,19 @@ function processarRespostaIA(jsonString, segundos) {
     iaRacaBadge.style.display = 'inline-block';
     iaRacaBadge.textContent = `${analise.especie || 'Pet'} · ${analise.raca || 'SRD'}`;
 
-    // Monta a lista na tela
     iaList.innerHTML = '';
     
-    // 1. Diagnóstico do comportamento
     const liComportamento = document.createElement('li');
     liComportamento.className = 'ia-item diagnostico';
     liComportamento.innerHTML = `<span class="texto-destaque">Comportamento: ${analise.comportamento}</span>`;
     iaList.appendChild(liComportamento);
 
-    // 2. Análise da Raça
     const liAnalise = document.createElement('li');
     liAnalise.className = 'ia-item diagnostico';
-    liAnalise.style.color = '#EA580C'; // Laranja para destacar
+    liAnalise.style.color = '#EA580C'; 
     liAnalise.innerHTML = `<span class="texto-destaque">Análise da Raça: ${analise.analise_raca}</span>`;
     iaList.appendChild(liAnalise);
 
-    // 3. Dicas
     if (analise.dicas && analise.dicas.length > 0) {
         analise.dicas.forEach((dica, index) => {
             const li = document.createElement('li');
@@ -288,7 +299,6 @@ function processarRespostaIA(jsonString, segundos) {
         });
     }
 
-    // Salva no histórico
     salvarHistorico(jsonString, currentCategory, segundos);
     feedbackContainer.style.display = 'block';
 }
@@ -334,7 +344,7 @@ function salvarAvaliacao(tipo, comentario) {
 }
 
 // ==========================================
-// RELATÓRIO PARA O VETERINÁRIO (DOWNLOAD TXT)
+// RELATÓRIO PARA O VETERINÁRIO
 // ==========================================
 vetReportBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -355,7 +365,6 @@ vetReportBtn.addEventListener('click', (e) => {
     
     textoRelatorio += `HISTÓRICO DETALHADO (Últimas 10 análises):\n`;
     historico.forEach((item, index) => {
-        // Tenta extrair a raça do JSON salvo
         let raca = "Não identificada";
         try {
             const parsed = JSON.parse(item.texto);
@@ -376,7 +385,7 @@ vetReportBtn.addEventListener('click', (e) => {
 });
 
 // ==========================================
-// WHATSAPP E HISTÓRICO (MODAL)
+// WHATSAPP E HISTÓRICO
 // ==========================================
 whatsappBtn.addEventListener('click', () => {
     if (!lastAIResult) { alert("Faça uma análise primeiro!"); return; }
