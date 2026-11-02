@@ -1,7 +1,10 @@
 // netlify/functions/salvar-feedback.js
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 exports.handler = async (event) => {
+  // Inicializa o contexto do Blobs
+  connectLambda(event);
+
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",

@@ -1,7 +1,10 @@
 // netlify/functions/listar-feedbacks.js
-const { getStore } = require("@netlify/blobs");
+const { getStore, connectLambda } = require("@netlify/blobs");
 
 exports.handler = async (event) => {
+  // Inicializa o contexto do Blobs para o ambiente de produção
+  connectLambda(event);
+
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Content-Type": "application/json",
