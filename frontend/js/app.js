@@ -11,6 +11,7 @@ const timerDisplay = document.getElementById('timerDisplay');
 const behaviorText = document.getElementById('behaviorText');
 const iaList = document.getElementById('iaList');
 const iaCategoryBadge = document.getElementById('iaCategoryBadge');
+const iaRacaBadge = document.getElementById('iaRacaBadge'); // Novo elemento
 const historyBtn = document.getElementById('historyBtn');
 const whatsappBtn = document.getElementById('whatsappBtn');
 const historyModal = document.getElementById('historyModal');
@@ -37,11 +38,12 @@ const feedbackThanks = document.getElementById('feedbackThanks');
 let stream = null;
 let isRecording = false;
 let isPaused = false;
-let timeLeft = 30;
+let timeLeft = 10; 
 let timerInterval = null;
 let lastAIResult = "";
 let currentCategory = "atividade";
 let alertTriggered = false;
+let framesColetados = []; 
 
 let stats = JSON.parse(localStorage.getItem('vigiapet_stats')) || { descanco: 0, alimentacao: 0, atividade: 0 };
 const petEmojis = ['🐾', '💡', '🦴', '🎾', '🩺', '😴', '🍖'];
@@ -53,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initCamera();
     updateStatsUI();
 
-    // Checa Consentimento
     const hasConsent = localStorage.getItem('vigiapet_consent');
     if (!hasConsent) {
         consentModal.style.display = 'flex';
@@ -61,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
         checkOnboarding();
     }
 
-    // Lógica do Checkbox de Consentimento
     consentCheck.addEventListener('change', () => {
         btnAcceptConsent.disabled = !consentCheck.checked;
     });
@@ -81,7 +81,6 @@ function checkOnboarding() {
     }
 }
 
-// Funções globais para os botões do Onboarding (chamadas no HTML)
 window.nextOnboarding = function(step) {
     document.getElementById('onboardingStep1').style.display = 'none';
     document.getElementById('onboardingStep2').style.display = 'none';
@@ -126,8 +125,9 @@ vigiarBtn.addEventListener('click', () => {
 
     isRecording = true;
     isPaused = false;
-    timeLeft = 30;
+    timeLeft = 10; 
     alertTriggered = false;
+    framesColetados = []; 
 
     feedbackContainer.style.display = 'none';
     feedbackButtons.style.display = 'flex';
@@ -138,15 +138,21 @@ vigiarBtn.addEventListener('click', () => {
     vigiarBtn.style.display = 'none';
     controlsRow.style.display = 'grid';
     timerOverlay.style.display = 'flex';
-    behaviorText.textContent = "GRAVANDO";
-    iaList.innerHTML = '<li class="ia-item placeholder">Capturando imagem...</li>';
+    behaviorText.textContent = "GRAVANDO VÍDEO";
+    iaList.innerHTML = '<li class="ia-item placeholder">Analisando raça e comportamento...</li>';
     iaCategoryBadge.style.display = 'none';
+    iaRacaBadge.style.display = 'none';
     updateTimerDisplay();
 
     timerInterval = setInterval(() => {
         if (!isPaused) {
             timeLeft--;
             updateTimerDisplay();
+            
+            if (timeLeft === 8 || timeLeft === 5 || timeLeft === 2) {
+                capturarFrame();
+            }
+
             if (timeLeft <= 0) finalizarGravacao();
         }
     }, 1000);
@@ -155,13 +161,23 @@ vigiarBtn.addEventListener('click', () => {
 pauseBtn.addEventListener('click', () => {
     isPaused = !isPaused;
     pauseBtn.textContent = isPaused ? "RETOMAR" : "PAUSAR";
-    behaviorText.textContent = isPaused ? "PAUSADO" : "GRAVANDO";
+    behaviorText.textContent = isPaused ? "PAUSADO" : "GRAVANDO VÍDEO";
 });
 
 stopBtn.addEventListener('click', finalizarGravacao);
 
 function updateTimerDisplay() {
     timerDisplay.textContent = timeLeft;
+}
+
+function capturarFrame() {
+    const MAX_WIDTH = 640;
+    const scale = MAX_WIDTH / video.videoWidth;
+    canvas.width = MAX_WIDTH;
+    canvas.height = video.videoHeight * scale;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const base64Image = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+    framesColetados.push(base64Image);
 }
 
 // ==========================================
@@ -171,24 +187,19 @@ async function finalizarGravacao() {
     clearInterval(timerInterval);
     isRecording = false;
     
-    const tempoGravado = 30 - timeLeft;
+    if (framesColetados.length === 0) capturarFrame();
+
+    const tempoGravado = 10 - timeLeft;
 
     controlsRow.style.display = 'none';
     timerOverlay.style.display = 'none';
-    behaviorText.textContent = "ANALISANDO";
+    behaviorText.textContent = "ANALISANDO VÍDEO";
     
-    const MAX_WIDTH = 640;
-    const scale = MAX_WIDTH / video.videoWidth;
-    canvas.width = MAX_WIDTH;
-    canvas.height = video.videoHeight * scale;
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64Image = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-
     try {
         const response = await fetch('/.netlify/functions/analisar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64: base64Image })
+            body: JSON.stringify({ imagesBase64: framesColetados })
         });
 
         const text = await response.text();
@@ -215,33 +226,50 @@ function processarRespostaIA(texto, segundos) {
     currentCategory = "atividade";
     let badgeText = "ATIVIDADE";
     let badgeClass = "active";
+    let racaIdentificada = "Identificando...";
 
+    // 1. Extrai a Categoria
     const txtLower = texto.toLowerCase();
-
     if (txtLower.includes("[categoria: descanso]") || txtLower.includes("dormindo") || txtLower.includes("deitado")) { 
         currentCategory = "descanco"; badgeText = "DESCANSO"; badgeClass = "sleep"; 
     } else if (txtLower.includes("[categoria: alimentacao]") || txtLower.includes("comendo") || txtLower.includes("bebendo")) { 
         currentCategory = "alimentacao"; badgeText = "ALIMENTAÇÃO"; badgeClass = "eat"; 
     }
 
+    // 2. Extrai a Raça usando Regex
+    const matchRaca = texto.match(/\[RACA:\s*(.*?)\]/i);
+    if (matchRaca && matchRaca[1]) {
+        racaIdentificada = matchRaca[1].trim();
+    }
+
+    // 3. Atualiza Estatísticas
     stats[currentCategory] += segundos;
     updateStatsUI();
 
-    // ALERTA DE SAÚDE: Se for agitado e o tempo for maior que 20s
-    if (currentCategory === "atividade" && segundos >= 20 && !alertTriggered) {
+    if (currentCategory === "atividade" && segundos >= 8 && !alertTriggered) {
         alertTriggered = true;
         setTimeout(() => {
             alert("⚠️ ALERTA DE SAÚDE: Seu pet está muito agitado por um longo período. Considere verificar se ele precisa de água ou passear!");
         }, 1000);
     }
 
-    const textoLimpo = texto.replace(/\[CATEGORIA:.*?\]/gi, '').trim();
+    // 4. Limpa o texto retirando as tags para exibir bonitinho
+    let textoLimpo = texto
+        .replace(/\[CATEGORIA:.*?\]/gi, '')
+        .replace(/\[RACA:.*?\]/gi, '')
+        .trim();
+
     behaviorText.textContent = "CONCLUÍDO";
     
+    // 5. Atualiza os Badges (Categoria e Raça)
     iaCategoryBadge.style.display = 'inline-block';
     iaCategoryBadge.textContent = badgeText;
     iaCategoryBadge.className = `ia-badge ${badgeClass}`;
 
+    iaRacaBadge.style.display = 'inline-block';
+    iaRacaBadge.textContent = racaIdentificada;
+
+    // 6. Renderiza o texto formatado
     iaList.innerHTML = '';
     const paragrafos = textoLimpo.split('\n').filter(p => p.trim() !== '');
     
@@ -254,13 +282,14 @@ function processarRespostaIA(texto, segundos) {
         if (p.trim().startsWith('-') || p.trim().startsWith('*')) {
             li.innerHTML = `<span class="emoji">${emoji}</span> <span class="texto">${textoFormatado}</span>`;
         } else {
+            // Se não for tópico, é o diagnóstico ou a análise da raça
             li.innerHTML = `<span class="texto-destaque">${textoFormatado}</span>`;
             li.classList.add('diagnostico');
         }
         iaList.appendChild(li);
     });
 
-    salvarHistorico(textoLimpo, currentCategory, segundos);
+    salvarHistorico(textoLimpo, currentCategory, segundos, racaIdentificada);
     feedbackContainer.style.display = 'block';
 }
 
@@ -287,12 +316,10 @@ function salvarAvaliacao(tipo, comentario) {
         data: new Date().toISOString(),
     };
 
-    // 1. Salva no localStorage (histórico local do usuário)
     const feedbacks = JSON.parse(localStorage.getItem('vigiapet_feedbacks') || '[]');
     feedbacks.push(feedbackData);
     localStorage.setItem('vigiapet_feedbacks', JSON.stringify(feedbacks));
 
-    // 2. Envia para o servidor (Painel Admin)
     fetch('/.netlify/functions/salvar-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -301,7 +328,6 @@ function salvarAvaliacao(tipo, comentario) {
         console.warn('Não foi possível enviar o feedback para o servidor:', err);
     });
 
-    // 3. Atualiza a tela
     feedbackButtons.style.display = 'none';
     feedbackCommentBox.style.display = 'none';
     feedbackThanks.style.display = 'block';
@@ -329,7 +355,7 @@ vetReportBtn.addEventListener('click', (e) => {
     
     textoRelatorio += `HISTÓRICO DETALHADO (Últimas 10 análises):\n`;
     historico.forEach((item, index) => {
-        textoRelatorio += `${index + 1}. Data: ${item.data} | Comportamento: ${item.categoria.toUpperCase()} | Duração: ${item.segundos}s\n`;
+        textoRelatorio += `${index + 1}. Data: ${item.data} | Raça: ${item.raca || 'Não info.'} | Comportamento: ${item.categoria.toUpperCase()}\n`;
         textoRelatorio += `   Análise: ${item.texto.replace(/\n/g, ' ')}\n\n`;
     });
 
@@ -347,7 +373,7 @@ vetReportBtn.addEventListener('click', (e) => {
 // ==========================================
 whatsappBtn.addEventListener('click', () => {
     if (!lastAIResult) { alert("Faça uma análise primeiro!"); return; }
-    const textoLimpo = lastAIResult.replace(/\[CATEGORIA:.*?\]/gi, '');
+    const textoLimpo = lastAIResult.replace(/\[CATEGORIA:.*?\]/gi, '').replace(/\[RACA:.*?\]/gi, '');
     const texto = `*VIGIA PET - RELATÓRIO*\n\n${textoLimpo}\n\n*RESUMO:*\nDescanso: ${Math.floor(stats.descanco / 60)}m\nAlimentação: ${Math.floor(stats.alimentacao / 60)}m\nAtividade: ${Math.floor(stats.atividade / 60)}m`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
 });
@@ -360,7 +386,7 @@ historyBtn.addEventListener('click', () => {
     } else {
         historico.forEach(item => {
             const li = document.createElement('li');
-            li.innerHTML = `<strong>${item.data}</strong><br>${item.categoria.toUpperCase()} · ${item.segundos}s`;
+            li.innerHTML = `<strong>${item.data}</strong><br>${item.raca || 'Raça não id.'} · ${item.categoria.toUpperCase()} · ${item.segundos}s`;
             historyList.appendChild(li);
         });
     }
@@ -369,9 +395,9 @@ historyBtn.addEventListener('click', () => {
 
 closeModal.addEventListener('click', () => { historyModal.style.display = 'none'; });
 
-function salvarHistorico(texto, categoria, segundos) {
+function salvarHistorico(texto, categoria, segundos, raca) {
     const historico = JSON.parse(localStorage.getItem('vigiapet_history') || '[]');
-    historico.unshift({ data: new Date().toLocaleString('pt-BR'), texto, categoria, segundos });
+    historico.unshift({ data: new Date().toLocaleString('pt-BR'), texto, categoria, segundos, raca });
     if (historico.length > 10) historico.pop();
     localStorage.setItem('vigiapet_history', JSON.stringify(historico));
 }
