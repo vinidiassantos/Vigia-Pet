@@ -9,8 +9,8 @@ const controlsRow = document.getElementById('controlsRow');
 const timerOverlay = document.getElementById('timerOverlay');
 const timerDisplay = document.getElementById('timerDisplay');
 const behaviorText = document.getElementById('behaviorText');
-const iaContent = document.getElementById('iaContent'); // Atualizado
-const iaPlaceholder = document.getElementById('iaPlaceholder'); // Atualizado
+const iaContent = document.getElementById('iaContent');
+const iaPlaceholder = document.getElementById('iaPlaceholder');
 const iaCategoryBadge = document.getElementById('iaCategoryBadge');
 const iaRacaBadge = document.getElementById('iaRacaBadge'); 
 const historyBtn = document.getElementById('historyBtn');
@@ -201,7 +201,8 @@ async function finalizarGravacao() {
     behaviorText.textContent = "ANALISANDO VÍDEO";
     
     try {
-        const response = await fetch('/.netlify/functions/analisar', {
+        // CORREÇÃO: Rota apontando para a API do Vercel
+        const response = await fetch('/api/analisar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imagesBase64: framesColetados })
@@ -364,7 +365,8 @@ function salvarAvaliacao(tipo, comentario) {
     feedbacks.push(feedbackData);
     localStorage.setItem('vigiapet_feedbacks', JSON.stringify(feedbacks));
 
-    fetch('/.netlify/functions/salvar-feedback', {
+    // CORREÇÃO: Rota apontando para a API do Vercel
+    fetch('/api/salvar-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(feedbackData),
