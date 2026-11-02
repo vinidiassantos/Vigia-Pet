@@ -5,15 +5,5 @@
     "api/analisar.js": {
       "maxDuration": 60
     }
-  },
-  "rewrites": [
-    {
-      "source": "/.netlify/functions/analisar",
-      "destination": "/api/analisar"
-    },
-    {
-      "source": "/.netlify/functions/salvar-feedback",
-      "destination": "/api/salvar-feedback"
-    }
-  ]
+  }
 }

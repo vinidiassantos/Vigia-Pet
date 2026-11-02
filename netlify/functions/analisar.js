@@ -1,6 +1,4 @@
 // api/analisar.js
-require("dotenv").config();
-
 export default async function handler(req, res) {
   // Configuração de CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -50,57 +48,48 @@ export default async function handler(req, res) {
       });
     });
 
-    // Configura o cancelamento automático se demorar mais de 55 segundos
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000);
+    // Mantendo o seu modelo original que funcionava no Netlify
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "qwen/qwen3.8-27b", 
+        messages: [{ role: "user", content: content }],
+        temperature: 0.1,
+        max_tokens: 600,
+        response_format: { type: "json_object" }
+      })
+    });
 
-    try {
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "llama-3.2-11b-vision-preview", // Modelo de Visão Correto da Groq
-          messages: [{ role: "user", content: content }],
-          temperature: 0.1,
-          max_tokens: 600,
-          response_format: { type: "json_object" }
-        }),
-        signal: controller.signal
-      });
+    const data = await response.json();
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || "Erro na API da Groq");
-      }
-
-      let resultadoTexto = data.choices?.[0]?.message?.content || "{}";
-
-      // --- LIMPEZA EXTRA (GARANTIA) ---
-      resultadoTexto = resultadoTexto.replace(/```json/gi, '').replace(/```/g, '').trim();
-      const inicioJson = resultadoTexto.indexOf('{');
-      const fimJson = resultadoTexto.lastIndexOf('}');
-      
-      if (inicioJson !== -1 && fimJson !== -1) {
-        resultadoTexto = resultadoTexto.substring(inicioJson, fimJson + 1);
-      }
-
-      // Valida se o JSON é perfeitamente parseável
-      try {
-        JSON.parse(resultadoTexto);
-      } catch (e) {
-        console.error("JSON inválido gerado pela IA:", resultadoTexto);
-        throw new Error("A IA gerou um formato inválido. Tente novamente.");
-      }
-
-      return res.status(200).json({ result: resultadoTexto });
-
-    } finally {
-      clearTimeout(timeoutId);
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Erro na API da Groq");
     }
+
+    let resultadoTexto = data.choices?.[0]?.message?.content || "{}";
+
+    // --- LIMPEZA EXTRA (GARANTIA) ---
+    resultadoTexto = resultadoTexto.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const inicioJson = resultadoTexto.indexOf('{');
+    const fimJson = resultadoTexto.lastIndexOf('}');
+    
+    if (inicioJson !== -1 && fimJson !== -1) {
+      resultadoTexto = resultadoTexto.substring(inicioJson, fimJson + 1);
+    }
+
+    // Valida se o JSON é perfeitamente parseável
+    try {
+      JSON.parse(resultadoTexto);
+    } catch (e) {
+      console.error("JSON inválido gerado pela IA:", resultadoTexto);
+      throw new Error("A IA gerou um formato inválido. Tente novamente.");
+    }
+
+    return res.status(200).json({ result: resultadoTexto });
 
   } catch (error) {
     console.error("❌ Erro no Backend:", error);
