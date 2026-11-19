@@ -114,17 +114,6 @@ function updateStatsUI() {
 }
 
 // ==========================================
-// TELEMETRIA (ITEM 2)
-// ==========================================
-function obterSistemaOperacional() {
-    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return 'iOS';
-    if (/android/i.test(userAgent)) return 'Android';
-    if (/windows phone/i.test(userAgent)) return 'Windows Phone';
-    return 'Desktop/Outro';
-}
-
-// ==========================================
 // CONTROLE DE GRAVAÇÃO
 // ==========================================
 vigiarBtn.addEventListener('click', () => {
@@ -191,7 +180,7 @@ function capturarFrame() {
     canvas.width = MAX_WIDTH;
     canvas.height = video.videoHeight * scale;
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64Image = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+    const base64Image = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
     framesColetados.push(base64Image);
 }
 
@@ -199,13 +188,14 @@ function capturarFrame() {
 // FINALIZAR E ENVIAR PARA IA
 // ==========================================
 async function finalizarGravacao() {
+    if (!isRecording) return; // CADEADO: Evita dupla execução
+    isRecording = false;      // Desativa imediatamente
+
     clearInterval(timerInterval);
-    isRecording = false;
     
     if (framesColetados.length === 0) capturarFrame();
 
     const tempoGravado = 10 - timeLeft;
-    const sistemaOperacional = obterSistemaOperacional(); // ITEM 2
 
     controlsRow.style.display = 'none';
     timerOverlay.style.display = 'none';
@@ -216,14 +206,19 @@ async function finalizarGravacao() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                imagesBase64: framesColetados,
-                sistema_operacional: sistemaOperacional // Enviando a telemetria
+                imagesBase64: framesColetados.slice(-1) // MÁGICA AQUI: Envia APENAS 1 imagem (economiza tokens da Groq)
             })
         });
 
         const text = await response.text();
         let data;
-        try { data = JSON.parse(text); } catch (e) { throw new Error("Tempo esgotado. Tente novamente."); }
+        try { data = JSON.parse(text); } catch (e) { throw new Error("Erro de comunicação com o servidor."); }
+        
+        // Tratamento amigável para o erro de limite da Groq
+        if (data.error && data.error.includes("Rate limit reached")) {
+            throw new Error("Muitas análises em pouco tempo. Aguarde 1 minuto e tente novamente.");
+        }
+
         if (!response.ok) throw new Error(data.error || "Erro desconhecido");
 
         lastAIResult = data.result; 
@@ -260,30 +255,6 @@ function processarRespostaIA(jsonString, segundos) {
             return;
         }
     }
-
-    // =======================================================
-    // CORREÇÃO: VERIFICAÇÃO DE "NENHUM PET DETECTADO"
-    // =======================================================
-    if (analise.especie === "Nenhum" || analise.especie === "Nenhuma") {
-        behaviorText.textContent = "NENHUM PET DETECTADO";
-        iaPlaceholder.style.display = 'none';
-        iaContent.innerHTML = `
-            <div class="ia-block" style="border-left: 4px solid #ff4d4d; background-color: #fff5f5; margin-top: 15px;">
-                <div class="ia-block-title" style="color: #cc0000;">⚠️ Atenção</div>
-                <div class="ia-block-content">
-                    <p>${analise.comportamento || 'Nenhum cachorro ou gato foi identificado nas imagens. Aponte a câmera para o seu pet.'}</p>
-                </div>
-            </div>
-        `;
-        
-        // Oculta as badges de categoria e raça
-        iaCategoryBadge.style.display = 'none';
-        iaRacaBadge.style.display = 'none';
-        
-        // Retorna para não salvar histórico/estatísticas erradas
-        return; 
-    }
-    // =======================================================
 
     const comportamentoLower = (analise.comportamento || "").toLowerCase();
     if (comportamentoLower.includes("dorm") || comportamentoLower.includes("deitad") || comportamentoLower.includes("descans")) {
@@ -368,7 +339,7 @@ function processarRespostaIA(jsonString, segundos) {
         iaContent.appendChild(blocoDicas);
     }
 
-    // Bloco 5: Sugestão de Tratamento (ITEM 3 - IA Multimodal)
+    // Bloco 5: Sugestão de Tratamento
     if (analise.tratamento && analise.tratamento !== "Não se aplica") {
         const blocoTratamento = document.createElement('div');
         blocoTratamento.className = 'ia-block'; 
