@@ -1,0 +1,24 @@
+{
+  "functions": [
+    {
+      "source": "backend/functions",
+      "codebase": "default"
+    }
+  ],
+  "emulators": {
+    "functions": {
+      "port": 9200
+    },
+    "ui": {
+      "enabled": true,
+      "port": 9201
+    },
+    "hub": {
+      "port": 9202
+    },
+    "logging": {
+      "port": 9203
+    },
+    "singleProjectMode": true
+  }
+}

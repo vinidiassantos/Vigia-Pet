@@ -114,6 +114,17 @@ function updateStatsUI() {
 }
 
 // ==========================================
+// TELEMETRIA (ITEM 2)
+// ==========================================
+function obterSistemaOperacional() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return 'iOS';
+    if (/android/i.test(userAgent)) return 'Android';
+    if (/windows phone/i.test(userAgent)) return 'Windows Phone';
+    return 'Desktop/Outro';
+}
+
+// ==========================================
 // CONTROLE DE GRAVAÇÃO
 // ==========================================
 vigiarBtn.addEventListener('click', () => {
@@ -140,7 +151,6 @@ vigiarBtn.addEventListener('click', () => {
     timerOverlay.style.display = 'flex';
     behaviorText.textContent = "GRAVANDO VÍDEO";
     
-    // Limpa os blocos anteriores e mostra o placeholder
     iaContent.innerHTML = '';
     iaPlaceholder.style.display = 'block';
     iaPlaceholder.textContent = "Analisando raça e comportamento...";
@@ -195,17 +205,20 @@ async function finalizarGravacao() {
     if (framesColetados.length === 0) capturarFrame();
 
     const tempoGravado = 10 - timeLeft;
+    const sistemaOperacional = obterSistemaOperacional(); // ITEM 2
 
     controlsRow.style.display = 'none';
     timerOverlay.style.display = 'none';
     behaviorText.textContent = "ANALISANDO VÍDEO";
     
     try {
-        // CORREÇÃO: Rota apontando para a API do Vercel
-        const response = await fetch('/api/analisar', {
+        const response = await fetch('/.netlify/functions/analisar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imagesBase64: framesColetados })
+            body: JSON.stringify({ 
+                imagesBase64: framesColetados,
+                sistema_operacional: sistemaOperacional // Enviando a telemetria
+            })
         });
 
         const text = await response.text();
@@ -248,7 +261,30 @@ function processarRespostaIA(jsonString, segundos) {
         }
     }
 
-    // Categoriza para as estatísticas
+    // =======================================================
+    // CORREÇÃO: VERIFICAÇÃO DE "NENHUM PET DETECTADO"
+    // =======================================================
+    if (analise.especie === "Nenhum" || analise.especie === "Nenhuma") {
+        behaviorText.textContent = "NENHUM PET DETECTADO";
+        iaPlaceholder.style.display = 'none';
+        iaContent.innerHTML = `
+            <div class="ia-block" style="border-left: 4px solid #ff4d4d; background-color: #fff5f5; margin-top: 15px;">
+                <div class="ia-block-title" style="color: #cc0000;">⚠️ Atenção</div>
+                <div class="ia-block-content">
+                    <p>${analise.comportamento || 'Nenhum cachorro ou gato foi identificado nas imagens. Aponte a câmera para o seu pet.'}</p>
+                </div>
+            </div>
+        `;
+        
+        // Oculta as badges de categoria e raça
+        iaCategoryBadge.style.display = 'none';
+        iaRacaBadge.style.display = 'none';
+        
+        // Retorna para não salvar histórico/estatísticas erradas
+        return; 
+    }
+    // =======================================================
+
     const comportamentoLower = (analise.comportamento || "").toLowerCase();
     if (comportamentoLower.includes("dorm") || comportamentoLower.includes("deitad") || comportamentoLower.includes("descans")) {
         currentCategory = "descanco";
@@ -270,7 +306,6 @@ function processarRespostaIA(jsonString, segundos) {
 
     behaviorText.textContent = "CONCLUÍDO";
     
-    // Atualiza Badges
     iaCategoryBadge.style.display = 'inline-block';
     iaCategoryBadge.textContent = currentCategory.toUpperCase();
     iaCategoryBadge.className = `ia-badge ${currentCategory === 'descanco' ? 'sleep' : currentCategory === 'alimentacao' ? 'eat' : 'active'}`;
@@ -278,9 +313,8 @@ function processarRespostaIA(jsonString, segundos) {
     iaRacaBadge.style.display = 'inline-block';
     iaRacaBadge.textContent = analise.raca || 'SRD';
 
-    // --- INÍCIO DA MONTAGEM DOS BLOCOS NO FRONTEND ---
     iaPlaceholder.style.display = 'none';
-    iaContent.innerHTML = ''; // Limpa a tela
+    iaContent.innerHTML = ''; 
 
     // Bloco 1: Espécie e Detalhes
     const blocoEspecie = document.createElement('div');
@@ -334,6 +368,19 @@ function processarRespostaIA(jsonString, segundos) {
         iaContent.appendChild(blocoDicas);
     }
 
+    // Bloco 5: Sugestão de Tratamento (ITEM 3 - IA Multimodal)
+    if (analise.tratamento && analise.tratamento !== "Não se aplica") {
+        const blocoTratamento = document.createElement('div');
+        blocoTratamento.className = 'ia-block'; 
+        blocoTratamento.innerHTML = `
+            <div class="ia-block-title">🩺 Sugestão de Tratamento / Resolução</div>
+            <div class="ia-block-content" style="background-color: #f0f8ff; padding: 10px; border-left: 4px solid #007bff; border-radius: 4px;">
+                <p>${analise.tratamento}</p>
+            </div>
+        `;
+        iaContent.appendChild(blocoTratamento);
+    }
+
     salvarHistorico(jsonString, currentCategory, segundos);
     feedbackContainer.style.display = 'block';
 }
@@ -365,8 +412,7 @@ function salvarAvaliacao(tipo, comentario) {
     feedbacks.push(feedbackData);
     localStorage.setItem('vigiapet_feedbacks', JSON.stringify(feedbacks));
 
-    // CORREÇÃO: Rota apontando para a API do Vercel
-    fetch('/api/salvar-feedback', {
+    fetch('/.netlify/functions/salvar-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(feedbackData),
@@ -402,13 +448,15 @@ vetReportBtn.addEventListener('click', (e) => {
     textoRelatorio += `HISTÓRICO DETALHADO (Últimas 10 análises):\n`;
     historico.forEach((item, index) => {
         let raca = "Não identificada";
+        let tratamento = "N/A";
         try {
             const parsed = JSON.parse(item.texto);
             raca = `${parsed.especie} - ${parsed.raca}`;
+            tratamento = parsed.tratamento || "N/A";
         } catch(e) {}
 
         textoRelatorio += `${index + 1}. Data: ${item.data} | Raça: ${raca} | Comportamento: ${item.categoria.toUpperCase()}\n`;
-        textoRelatorio += `   Análise: ${item.texto.replace(/\n/g, ' ')}\n\n`;
+        textoRelatorio += `   Tratamento Sugerido: ${tratamento}\n\n`;
     });
 
     const blob = new Blob([textoRelatorio], { type: 'text/plain;charset=utf-8' });
@@ -425,7 +473,15 @@ vetReportBtn.addEventListener('click', (e) => {
 // ==========================================
 whatsappBtn.addEventListener('click', () => {
     if (!lastAIResult) { alert("Faça uma análise primeiro!"); return; }
-    const texto = `*VIGIA PET - RELATÓRIO*\n\n${lastAIResult}\n\n*RESUMO:*\nDescanso: ${Math.floor(stats.descanco / 60)}m\nAlimentação: ${Math.floor(stats.alimentacao / 60)}m\nAtividade: ${Math.floor(stats.atividade / 60)}m`;
+    let tratamento = "";
+    try {
+        const parsed = JSON.parse(lastAIResult);
+        if(parsed.tratamento && parsed.tratamento !== "Não se aplica") {
+            tratamento = `\n*TRATAMENTO SUGERIDO:*\n${parsed.tratamento}\n`;
+        }
+    } catch(e) {}
+
+    const texto = `*VIGIA PET - RELATÓRIO*\n\n${lastAIResult}${tratamento}\n\n*RESUMO:*\nDescanso: ${Math.floor(stats.descanco / 60)}m\nAlimentação: ${Math.floor(stats.alimentacao / 60)}m\nAtividade: ${Math.floor(stats.atividade / 60)}m`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
 });
 
