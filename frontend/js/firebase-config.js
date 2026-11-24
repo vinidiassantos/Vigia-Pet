@@ -9,7 +9,7 @@ const firebaseConfig = {
   measurementId: "G-12V07LE6D7"
 };
 
-// Importar Firebase (CDN)
+// Importar Firebase (CDN) - Versão 10.7.1 unificada
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { 
     getFirestore, 
@@ -42,6 +42,24 @@ const auth = getAuth(app);
 
 console.log('✅ Firebase conectado com sucesso!');
 
-// Exportar
-export { db, auth, collection, addDoc, serverTimestamp, getDocs, query, orderBy, where, doc, getDoc, updateDoc, deleteDoc, onSnapshot };
-export { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut };
+// Exportar tudo que o app precisa
+export { 
+    db, 
+    auth, 
+    collection, 
+    addDoc, 
+    serverTimestamp, 
+    getDocs, 
+    query, 
+    orderBy, 
+    where, 
+    doc, 
+    getDoc, 
+    updateDoc, 
+    deleteDoc, 
+    onSnapshot,
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword, 
+    onAuthStateChanged, 
+    signOut 
+};

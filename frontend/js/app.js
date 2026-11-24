@@ -1,4 +1,6 @@
 // frontend/js/app.js
+// 👇 CORREÇÃO AQUI: Tudo sendo importado do seu firebase-config.js na versão correta
+import { db, collection, addDoc } from './firebase-config.js';
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
@@ -49,11 +51,15 @@ let framesColetados = [];
 let stats = JSON.parse(localStorage.getItem('vigiapet_stats')) || { descanco: 0, alimentacao: 0, atividade: 0 };
 
 // ==========================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO E TELEMETRIA (ITEM 2)
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     initCamera();
     updateStatsUI();
+
+    // Salva a telemetria no Firebase
+    const so = obterSistemaOperacional();
+    await salvarTelemetria(so);
 
     const hasConsent = localStorage.getItem('vigiapet_consent');
     if (!hasConsent) {
@@ -72,6 +78,27 @@ document.addEventListener('DOMContentLoaded', () => {
         checkOnboarding();
     });
 });
+
+function obterSistemaOperacional() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) return 'iOS';
+    if (/android/i.test(userAgent)) return 'Android';
+    if (/windows phone/i.test(userAgent)) return 'Windows Phone';
+    return 'Desktop/Outro';
+}
+
+async function salvarTelemetria(sistemaOperacional) {
+    try {
+        await addDoc(collection(db, "telemetria_acessos"), {
+            sistema_operacional: sistemaOperacional,
+            data_acesso: new Date().toISOString(),
+            origem: "web_app"
+        });
+        console.log("📱 Telemetria salva no Firebase:", sistemaOperacional);
+    } catch (error) {
+        console.warn("Erro ao salvar telemetria:", error);
+    }
+}
 
 function checkOnboarding() {
     const hasSeenOnboarding = localStorage.getItem('vigiapet_onboarding');
@@ -128,6 +155,9 @@ vigiarBtn.addEventListener('click', () => {
     timeLeft = 10; 
     alertTriggered = false;
     framesColetados = []; 
+    
+    // Esconde o bloco de produtos de análises anteriores
+    document.getElementById('blocoProdutos').style.display = 'none';
 
     feedbackContainer.style.display = 'none';
     feedbackButtons.style.display = 'flex';
@@ -180,7 +210,7 @@ function capturarFrame() {
     canvas.width = MAX_WIDTH;
     canvas.height = video.videoHeight * scale;
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    const base64Image = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
+    const base64Image = canvas.toDataURL('image/jpeg', 0.6).split(',')[1]; // Qualidade 0.6
     framesColetados.push(base64Image);
 }
 
@@ -189,12 +219,11 @@ function capturarFrame() {
 // ==========================================
 async function finalizarGravacao() {
     if (!isRecording) return; // CADEADO: Evita dupla execução
-    isRecording = false;      // Desativa imediatamente
+    isRecording = false;
 
     clearInterval(timerInterval);
     
     if (framesColetados.length === 0) capturarFrame();
-
     const tempoGravado = 10 - timeLeft;
 
     controlsRow.style.display = 'none';
@@ -206,15 +235,20 @@ async function finalizarGravacao() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                imagesBase64: framesColetados.slice(-1) // MÁGICA AQUI: Envia APENAS 1 imagem (economiza tokens da Groq)
+                imagesBase64: framesColetados.slice(-1), // Envia apenas 1 imagem (Economia de Tokens)
+                sistema_operacional: obterSistemaOperacional() 
             })
         });
 
         const text = await response.text();
         let data;
-        try { data = JSON.parse(text); } catch (e) { throw new Error("Erro de comunicação com o servidor."); }
         
-        // Tratamento amigável para o erro de limite da Groq
+        try { 
+            data = JSON.parse(text); 
+        } catch (e) { 
+            throw new Error("O servidor demorou muito para responder ou retornou um erro."); 
+        }
+        
         if (data.error && data.error.includes("Rate limit reached")) {
             throw new Error("Muitas análises em pouco tempo. Aguarde 1 minuto e tente novamente.");
         }
@@ -256,6 +290,22 @@ function processarRespostaIA(jsonString, segundos) {
         }
     }
 
+    if (analise.especie === "Nenhum" || analise.especie === "Nenhuma") {
+        behaviorText.textContent = "NENHUM PET DETECTADO";
+        iaPlaceholder.style.display = 'none';
+        iaContent.innerHTML = `
+            <div class="ia-block" style="border-left: 4px solid #ff4d4d; background-color: #fff5f5; margin-top: 15px;">
+                <div class="ia-block-title" style="color: #cc0000;">⚠️ Atenção</div>
+                <div class="ia-block-content">
+                    <p>${analise.comportamento || 'Nenhum cachorro ou gato foi identificado. Aponte a câmera para o seu pet.'}</p>
+                </div>
+            </div>
+        `;
+        iaCategoryBadge.style.display = 'none';
+        iaRacaBadge.style.display = 'none';
+        return; 
+    }
+
     const comportamentoLower = (analise.comportamento || "").toLowerCase();
     if (comportamentoLower.includes("dorm") || comportamentoLower.includes("deitad") || comportamentoLower.includes("descans")) {
         currentCategory = "descanco";
@@ -270,9 +320,7 @@ function processarRespostaIA(jsonString, segundos) {
 
     if (currentCategory === "atividade" && segundos >= 8 && !alertTriggered) {
         alertTriggered = true;
-        setTimeout(() => {
-            alert("⚠️ ALERTA DE SAÚDE: Seu pet está muito agitado por um longo período.");
-        }, 1000);
+        setTimeout(() => { alert("⚠️ ALERTA DE SAÚDE: Seu pet está muito agitado por um longo período."); }, 1000);
     }
 
     behaviorText.textContent = "CONCLUÍDO";
@@ -288,97 +336,115 @@ function processarRespostaIA(jsonString, segundos) {
     iaContent.innerHTML = ''; 
 
     // Bloco 1: Espécie e Detalhes
-    const blocoEspecie = document.createElement('div');
-    blocoEspecie.className = 'ia-block';
-    blocoEspecie.innerHTML = `
-        <div class="ia-block-title">🐾 Identificação</div>
-        <div class="ia-block-content">
-            <p><strong>Espécie:</strong> ${analise.especie || 'Não identificada'}</p>
-            <p><strong>Raça:</strong> ${analise.raca || 'SRD'}</p>
+    iaContent.innerHTML += `
+        <div class="ia-block">
+            <div class="ia-block-title">🐾 Identificação</div>
+            <div class="ia-block-content">
+                <p><strong>Espécie:</strong> ${analise.especie || 'Não identificada'}</p>
+                <p><strong>Raça:</strong> ${analise.raca || 'SRD'}</p>
+            </div>
         </div>
     `;
-    iaContent.appendChild(blocoEspecie);
 
     // Bloco 2: Comportamento
-    const blocoComportamento = document.createElement('div');
-    blocoComportamento.className = 'ia-block';
-    blocoComportamento.innerHTML = `
-        <div class="ia-block-title">👀 O que ele está fazendo</div>
-        <div class="ia-block-content">
-            <p>${analise.comportamento || 'Comportamento não detalhado.'}</p>
-        </div>
-    `;
-    iaContent.appendChild(blocoComportamento);
-
-    // Bloco 3: Análise da Raça
-    const blocoAnalise = document.createElement('div');
-    blocoAnalise.className = 'ia-block';
-    blocoAnalise.innerHTML = `
-        <div class="ia-block-title">⚖️ Análise Cruzada (Raça x Comportamento)</div>
-        <div class="ia-block-content">
-            <p>${analise.analise_raca || 'Análise de raça não detalhada.'}</p>
-        </div>
-    `;
-    iaContent.appendChild(blocoAnalise);
-
-    // Bloco 4: Dicas (Bullets)
-    if (analise.dicas && analise.dicas.length > 0) {
-        const blocoDicas = document.createElement('div');
-        blocoDicas.className = 'ia-block';
-        
-        let dicasHtml = analise.dicas.map(dica => `<li>${dica}</li>`).join('');
-        
-        blocoDicas.innerHTML = `
-            <div class="ia-block-title">💡 Dicas de Cuidado</div>
+    iaContent.innerHTML += `
+        <div class="ia-block">
+            <div class="ia-block-title">👀 O que ele está fazendo</div>
             <div class="ia-block-content">
-                <ul class="ia-tips-list">
-                    ${dicasHtml}
-                </ul>
+                <p>${analise.comportamento || 'Comportamento não detalhado.'}</p>
+            </div>
+        </div>
+    `;
+
+    // Bloco 3: Análise Cruzada
+    iaContent.innerHTML += `
+        <div class="ia-block">
+            <div class="ia-block-title">⚖️ Análise Cruzada (Raça x Comportamento)</div>
+            <div class="ia-block-content">
+                <p>${analise.analise_raca || 'Análise de raça não detalhada.'}</p>
+            </div>
+        </div>
+    `;
+
+    // Bloco 4: Dicas
+    if (analise.dicas && analise.dicas.length > 0) {
+        let dicasHtml = analise.dicas.map(dica => `<li>${dica}</li>`).join('');
+        iaContent.innerHTML += `
+            <div class="ia-block">
+                <div class="ia-block-title">💡 Dicas de Cuidado</div>
+                <div class="ia-block-content">
+                    <ul class="ia-tips-list">${dicasHtml}</ul>
+                </div>
             </div>
         `;
-        iaContent.appendChild(blocoDicas);
     }
 
-    // Bloco 5: Sugestão de Tratamento
+    // Bloco 5: Tratamento
     if (analise.tratamento && analise.tratamento !== "Não se aplica") {
-        const blocoTratamento = document.createElement('div');
-        blocoTratamento.className = 'ia-block'; 
-        blocoTratamento.innerHTML = `
-            <div class="ia-block-title">🩺 Sugestão de Tratamento / Resolução</div>
-            <div class="ia-block-content" style="background-color: #f0f8ff; padding: 10px; border-left: 4px solid #007bff; border-radius: 4px;">
-                <p>${analise.tratamento}</p>
+        iaContent.innerHTML += `
+            <div class="ia-block">
+                <div class="ia-block-title">🩺 Sugestão de Tratamento</div>
+                <div class="ia-block-content" style="background-color: #f0f8ff; padding: 10px; border-left: 4px solid #007bff; border-radius: 4px;">
+                    <p>${analise.tratamento}</p>
+                </div>
             </div>
         `;
-        iaContent.appendChild(blocoTratamento);
     }
+
+    // Chama a função de monetização
+    renderizarProdutos(jsonString);
 
     salvarHistorico(jsonString, currentCategory, segundos);
     feedbackContainer.style.display = 'block';
 }
 
 // ==========================================
-// FEEDBACK
+// MONETIZAÇÃO (AFILIADOS) - ITEM 1
+// ==========================================
+const bancoProdutos = [
+    { tag: 'ansiedade', nome: 'Brinquedo Interativo', preco: 'R$ 45,90', link: 'https://www.petz.com.br/busca?q=brinquedo' },
+    { tag: 'pele', nome: 'Ração Pele e Pelo', preco: 'R$ 189,90', link: 'https://www.petz.com.br/busca?q=racao+pele' },
+    { tag: 'articula', nome: 'Suplemento Articulações', preco: 'R$ 89,90', link: 'https://www.petz.com.br/busca?q=condroitina' },
+    { tag: 'peso', nome: 'Ração Light', preco: 'R$ 150,00', link: 'https://www.petz.com.br/busca?q=racao+light' },
+    { tag: 'geral', nome: 'Petiscos Naturais', preco: 'R$ 25,90', link: 'https://www.petz.com.br/busca?q=petiscos' }
+];
+
+function renderizarProdutos(textoIA) {
+    const bloco = document.getElementById('blocoProdutos');
+    const lista = document.getElementById('listaProdutos');
+    lista.innerHTML = '';
+    
+    let produtosParaMostrar = [];
+    const texto = textoIA.toLowerCase();
+
+    if (texto.includes('ansiedade') || texto.includes('estresse') || texto.includes('agita')) produtosParaMostrar.push(bancoProdutos[0]);
+    if (texto.includes('pele') || texto.includes('pelo') || texto.includes('coceira')) produtosParaMostrar.push(bancoProdutos[1]);
+    if (texto.includes('articula') || texto.includes('osso') || texto.includes('idoso')) produtosParaMostrar.push(bancoProdutos[2]);
+    if (texto.includes('peso') || texto.includes('obesidade')) produtosParaMostrar.push(bancoProdutos[3]);
+
+    if (produtosParaMostrar.length === 0) produtosParaMostrar.push(bancoProdutos[4]);
+
+    produtosParaMostrar.slice(0, 2).forEach(prod => {
+        lista.innerHTML += `
+            <div style="border: 1px solid #E2E8F0; padding: 10px; border-radius: 8px; text-align: center; background: #fff;">
+                <h4 style="font-size: 13px; margin-bottom: 5px; height: 35px;">${prod.nome}</h4>
+                <p style="color: #E53E3E; font-weight: bold; margin-bottom: 10px;">${prod.preco}</p>
+                <a href="${prod.link}" target="_blank" style="background: #0056b3; color: white; padding: 6px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; display:block;">Ver na Petz</a>
+            </div>
+        `;
+    });
+    bloco.style.display = 'block';
+}
+
+// ==========================================
+// FEEDBACK E RELATÓRIOS (MANTIDOS)
 // ==========================================
 btnThumbsUp.addEventListener('click', () => salvarAvaliacao("positivo", ""));
-btnThumbsDown.addEventListener('click', () => {
-    feedbackButtons.style.display = 'none';
-    feedbackCommentBox.style.display = 'flex';
-});
-
-btnSendFeedback.addEventListener('click', () => {
-    const comentario = feedbackComment.value.trim();
-    salvarAvaliacao("negativo", comentario);
-});
+btnThumbsDown.addEventListener('click', () => { feedbackButtons.style.display = 'none'; feedbackCommentBox.style.display = 'flex'; });
+btnSendFeedback.addEventListener('click', () => { salvarAvaliacao("negativo", feedbackComment.value.trim()); });
 
 function salvarAvaliacao(tipo, comentario) {
-    const feedbackData = {
-        tipo: tipo,
-        comentario: comentario,
-        categoriaIA: currentCategory,
-        textoIA: lastAIResult,
-        data: new Date().toISOString(),
-    };
-
+    const feedbackData = { tipo, comentario, categoriaIA: currentCategory, textoIA: lastAIResult, data: new Date().toISOString() };
     const feedbacks = JSON.parse(localStorage.getItem('vigiapet_feedbacks') || '[]');
     feedbacks.push(feedbackData);
     localStorage.setItem('vigiapet_feedbacks', JSON.stringify(feedbacks));
@@ -387,87 +453,42 @@ function salvarAvaliacao(tipo, comentario) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(feedbackData),
-    }).catch((err) => {
-        console.warn('Não foi possível enviar o feedback para o servidor:', err);
-    });
+    }).catch((err) => console.warn('Erro ao enviar feedback:', err));
 
     feedbackButtons.style.display = 'none';
     feedbackCommentBox.style.display = 'none';
     feedbackThanks.style.display = 'block';
 }
 
-// ==========================================
-// RELATÓRIO PARA O VETERINÁRIO (DOWNLOAD TXT)
-// ==========================================
+// Relatórios e Históricos
 vetReportBtn.addEventListener('click', (e) => {
     e.preventDefault();
     const historico = JSON.parse(localStorage.getItem('vigiapet_history') || '[]');
-    if (historico.length === 0) {
-        alert("Ainda não há histórico para gerar o relatório.");
-        return;
-    }
+    if (historico.length === 0) { alert("Ainda não há histórico."); return; }
 
-    let textoRelatorio = `RELATÓRIO VIGIA PET - PARA O VETERINÁRIO\n`;
-    textoRelatorio += `Gerado em: ${new Date().toLocaleString('pt-BR')}\n`;
-    textoRelatorio += `--------------------------------------------------\n\n`;
+    let texto = `RELATÓRIO VIGIA PET\nGerado em: ${new Date().toLocaleString('pt-BR')}\n---\nTEMPO: Descanso ${Math.floor(stats.descanco/60)}m | Alimentação ${Math.floor(stats.alimentacao/60)}m | Atividade ${Math.floor(stats.atividade/60)}m\n---\n`;
     
-    textoRelatorio += `RESUMO DE TEMPO (Total Acumulado):\n`;
-    textoRelatorio += `- Descanso: ${Math.floor(stats.descanco / 60)} minutos\n`;
-    textoRelatorio += `- Alimentação: ${Math.floor(stats.alimentacao / 60)} minutos\n`;
-    textoRelatorio += `- Atividade: ${Math.floor(stats.atividade / 60)} minutos\n\n`;
-    
-    textoRelatorio += `HISTÓRICO DETALHADO (Últimas 10 análises):\n`;
     historico.forEach((item, index) => {
-        let raca = "Não identificada";
-        let tratamento = "N/A";
-        try {
-            const parsed = JSON.parse(item.texto);
-            raca = `${parsed.especie} - ${parsed.raca}`;
-            tratamento = parsed.tratamento || "N/A";
-        } catch(e) {}
-
-        textoRelatorio += `${index + 1}. Data: ${item.data} | Raça: ${raca} | Comportamento: ${item.categoria.toUpperCase()}\n`;
-        textoRelatorio += `   Tratamento Sugerido: ${tratamento}\n\n`;
+        let raca = "N/A", tratamento = "N/A";
+        try { const p = JSON.parse(item.texto); raca = `${p.especie} - ${p.raca}`; tratamento = p.tratamento || "N/A"; } catch(e) {}
+        texto += `${index + 1}. Data: ${item.data} | Raça: ${raca} | Cat: ${item.categoria.toUpperCase()}\nTratamento: ${tratamento}\n\n`;
     });
 
-    const blob = new Blob([textoRelatorio], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `relatorio_vet_${new Date().getTime()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `relatorio_${new Date().getTime()}.txt`; a.click();
 });
 
-// ==========================================
-// WHATSAPP E HISTÓRICO (MODAL)
-// ==========================================
 whatsappBtn.addEventListener('click', () => {
     if (!lastAIResult) { alert("Faça uma análise primeiro!"); return; }
-    let tratamento = "";
-    try {
-        const parsed = JSON.parse(lastAIResult);
-        if(parsed.tratamento && parsed.tratamento !== "Não se aplica") {
-            tratamento = `\n*TRATAMENTO SUGERIDO:*\n${parsed.tratamento}\n`;
-        }
-    } catch(e) {}
-
-    const texto = `*VIGIA PET - RELATÓRIO*\n\n${lastAIResult}${tratamento}\n\n*RESUMO:*\nDescanso: ${Math.floor(stats.descanco / 60)}m\nAlimentação: ${Math.floor(stats.alimentacao / 60)}m\nAtividade: ${Math.floor(stats.atividade / 60)}m`;
+    let trat = "";
+    try { const p = JSON.parse(lastAIResult); if(p.tratamento && p.tratamento !== "Não se aplica") trat = `\n*TRATAMENTO:*\n${p.tratamento}\n`; } catch(e) {}
+    const texto = `*VIGIA PET*\n\n${lastAIResult}${trat}\n*RESUMO:*\nDescanso: ${Math.floor(stats.descanco/60)}m | Alimentação: ${Math.floor(stats.alimentacao/60)}m | Atividade: ${Math.floor(stats.atividade/60)}m`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
 });
 
 historyBtn.addEventListener('click', () => {
     const historico = JSON.parse(localStorage.getItem('vigiapet_history') || '[]');
-    historyList.innerHTML = '';
-    if (historico.length === 0) {
-        historyList.innerHTML = '<li>Nenhuma análise registrada.</li>';
-    } else {
-        historico.forEach(item => {
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${item.data}</strong><br>${item.categoria.toUpperCase()} · ${item.segundos}s`;
-            historyList.appendChild(li);
-        });
-    }
+    historyList.innerHTML = historico.length === 0 ? '<li>Nenhuma análise.</li>' : historico.map(i => `<li><strong>${i.data}</strong><br>${i.categoria.toUpperCase()} · ${i.segundos}s</li>`).join('');
     historyModal.style.display = 'flex';
 });
 

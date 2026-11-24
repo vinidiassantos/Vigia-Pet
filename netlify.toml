@@ -1,5 +1,6 @@
-[build]
+﻿[build]
   publish = "frontend"
+  functions = "netlify/functions"
 
 [dev]
   publish = "frontend"
@@ -7,3 +8,6 @@
 [[edge_functions]]
   path = "/admin"
   function = "auth-admin"
+
+[build.environment]
+  NODE_VERSION = "18"
